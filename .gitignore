@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build outputs
+dist/
+.next/
+out/
+build/
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# turbo
+.turbo/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# prisma
+prisma/migrations/**/migration_lock.toml
+
+# uploads
+uploads/
+
+# logs
+*.log
+npm-debug.log*
+
+# testing
+coverage/
