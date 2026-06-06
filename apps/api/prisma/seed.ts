@@ -1,7 +1,7 @@
 import { prisma } from '../src/lib/prisma.js';
 
 async function seed() {
-  console.log('🌱 Seeding Dr. Mahalingam College of Engineering and Technology (MCET) database...');
+  console.log('🌱 Seeding campus database...');
 
   // Clean existing data to avoid unique constraint issues
   await prisma.pollVote.deleteMany({});
@@ -22,21 +22,21 @@ async function seed() {
     create: {
       email: 'admin@lastbench.app',
       username: 'admin',
-      displayName: 'MCET Admin',
+      displayName: 'Campus Admin',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
       role: 'ADMIN',
       emailVerified: true,
     },
   });
 
-  // Create real-feeling MCET student users
+  // Create real-feeling student users across a multi-campus environment
   const user1 = await prisma.user.create({
     data: {
-      email: 'pollachi_king@mcet.in',
-      username: 'pollachi_king',
-      displayName: 'Pollachi King',
+      email: 'student_alpha@university.edu',
+      username: 'student_alpha',
+      displayName: 'Campus Explorer',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
-      college: 'MCET Pollachi',
+      college: 'State University',
       branch: 'CSE',
       year: 3,
       emailVerified: true,
@@ -45,11 +45,11 @@ async function seed() {
 
   const user2 = await prisma.user.create({
     data: {
-      email: 'kovai_coder@mcet.in',
+      email: 'kovai_coder@university.edu',
       username: 'kovai_coder',
       displayName: 'Kovai Coder',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
-      college: 'MCET Pollachi',
+      college: 'State University',
       branch: 'ECE',
       year: 2,
       emailVerified: true,
@@ -58,11 +58,11 @@ async function seed() {
 
   const user3 = await prisma.user.create({
     data: {
-      email: 'csk_veriyan@mcet.in',
+      email: 'csk_veriyan@university.edu',
       username: 'csk_veriyan',
       displayName: 'CSK Veriyan',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
-      college: 'MCET Pollachi',
+      college: 'State University',
       branch: 'Mech',
       year: 4,
       emailVerified: true,
@@ -71,30 +71,30 @@ async function seed() {
 
   const user4 = await prisma.user.create({
     data: {
-      email: 'namma_mcet@mcet.in',
-      username: 'namma_mcet',
-      displayName: 'Namma MCET',
+      email: 'namma_campus@university.edu',
+      username: 'namma_campus',
+      displayName: 'Namma Campus',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
-      college: 'MCET Pollachi',
+      college: 'State University',
       branch: 'IT',
       year: 3,
       emailVerified: true,
     },
   });
 
-  // Create MCET Specific Communities
+  // Create Generic, Multi-Campus Communities
   const communities = await Promise.all([
     prisma.community.create({
-      data: { name: 'General', slug: 'general', description: 'Open forum for all MCETians', category: 'general', isDefault: true },
+      data: { name: 'General', slug: 'general', description: 'Open forum for all campus discussions', category: 'general', isDefault: true },
     }),
     prisma.community.create({
-      data: { name: 'MCET Placements', slug: 'mcet-placements', description: 'Placement discussions, coding rounds, and interview updates for MCET Pollachi', college: 'MCET Pollachi', category: 'placement' },
+      data: { name: 'Placements & Careers', slug: 'placements-careers', description: 'Placement discussions, coding rounds, and interview updates', college: 'State University', category: 'placement' },
     }),
     prisma.community.create({
-      data: { name: 'MCET Memes', slug: 'mcet-memes', description: 'Unhinged department roasts, drawing board memes, and Pollachi travel struggles', college: 'MCET Pollachi', category: 'memes' },
+      data: { name: 'Campus Memes', slug: 'campus-memes', description: 'Unhinged department roasts, classroom memes, and daily struggles', college: 'State University', category: 'memes' },
     }),
     prisma.community.create({
-      data: { name: 'Campus Confessions', slug: 'campus-confessions', description: 'Anonymous confessions and classroom crushes from MCET students', category: 'general', isDefault: true },
+      data: { name: 'Campus Confessions', slug: 'campus-confessions', description: 'Anonymous confessions and classroom crushes from students', category: 'general', isDefault: true },
     }),
     prisma.community.create({
       data: { name: 'Tech Talk', slug: 'tech-talk', description: 'Coding projects, symposium preparation, and hackathons', category: 'academic', isDefault: true },
@@ -113,12 +113,12 @@ async function seed() {
     }
   }
 
-  // Create rich MCET, IPL, and South Indian posts
+  // Create rich, relatable post data
   const postsData = [
     {
       authorId: user3.id,
       communityId: communities[0]!.id,
-      title: 'CSK Yellow Army in MCET! 💛🦁',
+      title: 'CSK Yellow Army on Campus! 💛🦁',
       content: "Dhoni's last over sixes vs RCB at Chepauk was absolute peak cinema. The boys hostel TV room went completely wild! RCB fans in our department were silent. Who else is watching the playoffs tonight in Block C? Let's gather in the lobby!",
       isAnonymous: false,
       tags: ['ipl', 'csk', 'dhoni', 'hostel', 'cricket'],
@@ -136,10 +136,10 @@ async function seed() {
     {
       authorId: user1.id,
       communityId: communities[1]!.id,
-      title: 'Zoho Campus Placement Prep 💻',
-      content: "Zoho is visiting MCET next week for the Associate Software Engineer role. Anyone has previous round coding questions? I heard the second round focuses heavily on DSA and C/Java concepts. Please share your experiences if you attended last year's drives!",
+      title: 'Product Company Placement Prep 💻',
+      content: "A top tech company is visiting campus next week for the Associate Software Engineer role. Anyone has previous round coding questions? I heard the second round focuses heavily on DSA and C/Java concepts. Please share your experiences if you attended last year's drives!",
       isAnonymous: true,
-      tags: ['placement', 'zoho', 'coding', 'interviews'],
+      tags: ['placement', 'coding', 'interviews'],
       score: 76,
     },
     {
@@ -155,7 +155,7 @@ async function seed() {
       authorId: user3.id,
       communityId: communities[2]!.id,
       title: 'Mech drawing boards are cheat codes 💀',
-      content: "When the professor says 'MCET is a strict college' but the Mech department guys are busy playing BGMI behind the big drawing boards during engineering graphics class 💀",
+      content: "When the professor says 'this is a strict college' but the Mech department guys are busy playing BGMI behind the big drawing boards during engineering graphics class 💀",
       isAnonymous: true,
       tags: ['memes', 'mech', 'graphics', 'gaming'],
       score: 154,
@@ -163,19 +163,19 @@ async function seed() {
     {
       authorId: user2.id,
       communityId: communities[0]!.id,
-      title: 'Pollachi to Kovai Bus Ride in Rain 🌧️🚌',
-      content: "Nothing beats the Pollachi-Coimbatore bus ride in this rainy weather with Yuvan Shankar Raja's melody playlist in the headphones. Absolute aesthetic vibe. Pollachi weather hits different during the monsoon!",
+      title: 'Bus Ride in Rain 🌧️🚌',
+      content: "Nothing beats the bus ride back home in this rainy weather with Yuvan Shankar Raja's melody playlist in the headphones. Absolute aesthetic vibe. The weather hits different during the monsoon!",
       isAnonymous: false,
-      tags: ['pollachi', 'travel', 'rain', 'vibes'],
+      tags: ['travel', 'rain', 'vibes'],
       score: 85,
     },
     {
       authorId: user1.id,
       communityId: communities[4]!.id,
-      title: 'Built a local bus tracker for MCET day-scholars! 🚀',
-      content: "I got tired of missing the Coimbatore to Pollachi town buses, so I built a real-time crowd-sourced bus tracking app for MCET day-scholars using React Native and Node.js. Check out the screenshot of the dashboard coding layout!",
+      title: 'Built a local bus tracker for day-scholars! 🚀',
+      content: "I got tired of missing the local town buses, so I built a real-time crowd-sourced bus tracking app for day-scholars using React Native and Node.js. Check out the screenshot of the dashboard coding layout!",
       isAnonymous: false,
-      tags: ['webdev', 'reactnative', 'mcet', 'showcase'],
+      tags: ['webdev', 'reactnative', 'bus-tracker', 'showcase'],
       score: 210,
       mediaUrls: ['https://images.unsplash.com/photo-1607799279861-4dd421887fb3?auto=format&fit=crop&w=800&q=80'],
     },
@@ -260,19 +260,19 @@ async function seed() {
     data: {
       authorId: user2.id,
       communityId: communities[5]!.id,
-      title: 'Best hangout spot near MCET after class? ☕🏍️',
+      title: 'Best hangout spot near campus after class? ☕🏍️',
       content: 'Where do we go when the final bell rings?',
       type: 'POLL',
       isAnonymous: true,
-      tags: ['poll', 'hangout', 'mcet', 'canteen'],
+      tags: ['poll', 'hangout', 'canteen'],
       score: 68,
       poll: {
         create: {
           options: {
             create: [
               { text: 'The local tea shops outside the gate ☕', orderNum: 0 },
-              { text: 'Pollachi town central cafes 🍔', orderNum: 1 },
-              { text: 'Coimbatore highway long ride 🏍️', orderNum: 2 },
+              { text: 'Town central cafes 🍔', orderNum: 1 },
+              { text: 'Highway long ride 🏍️', orderNum: 2 },
               { text: 'Just sleeping in the hostel room 😴', orderNum: 3 },
             ],
           },
@@ -287,17 +287,17 @@ async function seed() {
       authorId: user1.id,
       communityId: communities[1]!.id,
       title: 'Which company is your dream target this placement season? 💼',
-      content: "Let's see the placement targets of MCET pre-final and final years.",
+      content: "Let's see the placement targets of pre-final and final years.",
       type: 'POLL',
       isAnonymous: false,
-      tags: ['poll', 'placement', 'zoho', 'careers'],
+      tags: ['poll', 'placement', 'careers'],
       score: 42,
       poll: {
         create: {
           options: {
             create: [
-              { text: 'Zoho (Product / Development) 💻', orderNum: 0 },
-              { text: 'TCS / CTS (Service / IT) 🏢', orderNum: 1 },
+              { text: 'Top Product Company (Development) 💻', orderNum: 0 },
+              { text: 'Consulting / Tech Services (IT) 🏢', orderNum: 1 },
               { text: 'Core engineering company (ECE/Mech core) ⚡', orderNum: 2 },
               { text: 'Off-campus remote product startups 🌍', orderNum: 3 },
             ],
@@ -307,7 +307,7 @@ async function seed() {
     },
   });
 
-  console.log('✅ MCET Seed complete!');
+  console.log('✅ Seed complete!');
   console.log(`   ${(await prisma.user.count())} users`);
   console.log(`   ${(await prisma.community.count())} communities`);
   console.log(`   ${(await prisma.post.count())} posts`);
