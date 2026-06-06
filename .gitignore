@@ -38,3 +38,11 @@ npm-debug.log*
 
 # testing
 coverage/
+
+# TS build info
+*.tsbuildinfo
+
+# archives
+*.zip
+*.tar.gz
+*.tgz
