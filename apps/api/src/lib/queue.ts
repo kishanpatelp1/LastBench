@@ -2,8 +2,8 @@ import { Queue, Worker, type Job } from 'bullmq';
 import { redis } from './redis.js';
 
 const connection = {
-  host: redis.options.host ?? 'localhost',
-  port: redis.options.port ?? 6379,
+  ...redis.options,
+  maxRetriesPerRequest: null,
 };
 
 // ─── Queues ─────────────────────────────────────────
