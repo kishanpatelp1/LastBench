@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { notificationService } from './notifications.service.js';
 import { requireAuth } from '../../middleware/auth.middleware.js';
 
-export const notificationRoutes = Router();
+export const notificationRoutes: Router = Router();
 
 notificationRoutes.get('/', requireAuth(), async (req, res, next) => {
   try {

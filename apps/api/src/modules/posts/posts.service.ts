@@ -3,6 +3,7 @@ import { invalidateCache, getCache, setCache } from '../../lib/redis.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { moderationQueue } from '../../lib/queue.js';
 import type { CreatePostInput, FeedQuery, VoteInput } from '@lastbench/shared';
+import type { Prisma } from '@prisma/client';
 
 export const postService = {
   async create(authorId: string, input: CreatePostInput) {
@@ -108,7 +109,7 @@ export const postService = {
 
     const hasMore = posts.length > limit;
     const items = hasMore ? posts.slice(0, -1) : posts;
-    const formatted = items.map((post) => this.formatPost(post, userId));
+    const formatted = items.map((post: (typeof items)[number]) => this.formatPost(post, userId));
 
     // M-8: Populate cache for anonymous first-page results (TTL 60s)
     if (cacheKey && !hasMore) {
@@ -149,7 +150,7 @@ export const postService = {
 
   async vote(postId: string, userId: string, input: VoteInput) {
     // C-3: Wrap all vote mutations in a transaction to prevent race conditions
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const post = await tx.post.findUnique({ where: { id: postId } });
       if (!post) throw new AppError(404, 'Post not found');
 
@@ -203,7 +204,7 @@ export const postService = {
       throw new AppError(400, 'Poll has expired');
     }
 
-    const validOption = poll.options.find((o) => o.id === optionId);
+    const validOption = poll.options.find((o: (typeof poll.options)[number]) => o.id === optionId);
     if (!validOption) throw new AppError(400, 'Invalid poll option');
 
     // Check if already voted on any option in this poll

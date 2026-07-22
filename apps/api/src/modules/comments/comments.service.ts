@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { enqueueNotification } from '../../workers/index.js';
 import type { CreateCommentInput } from '@lastbench/shared';
+import type { Prisma } from '@prisma/client';
 
 export const commentService = {
   async create(authorId: string, input: CreateCommentInput) {
@@ -94,10 +95,10 @@ export const commentService = {
     const items = hasMore ? comments.slice(0, -1) : comments;
 
     return {
-      items: items.map((c) => ({
+      items: items.map((c: (typeof items)[number]) => ({
         ...this.formatComment(c),
         replyCount: c._count.replies,
-        replies: c.replies.map((r) => ({
+        replies: c.replies.map((r: (typeof c.replies)[number]) => ({
           ...this.formatComment(r),
           replyCount: (r as unknown as { _count: { replies: number } })._count.replies,
         })),
@@ -109,7 +110,7 @@ export const commentService = {
 
   async vote(commentId: string, userId: string, type: 'UP' | 'DOWN') {
     // C-3: Atomic transaction prevents double-vote race conditions
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const existing = await tx.vote.findUnique({
         where: { userId_commentId: { userId, commentId } },
       });

@@ -60,7 +60,7 @@ export const authService = {
     const defaults = await prisma.community.findMany({ where: { isDefault: true }, select: { id: true } });
     if (defaults.length > 0) {
       await prisma.communityMember.createMany({
-        data: defaults.map((c) => ({ userId: user.id, communityId: c.id })),
+        data: defaults.map((c: { id: string }) => ({ userId: user.id, communityId: c.id })),
         skipDuplicates: true,
       });
     }

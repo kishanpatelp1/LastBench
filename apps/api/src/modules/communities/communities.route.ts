@@ -4,7 +4,7 @@ import { communityService } from './communities.service.js';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth, requireRole } from '../../middleware/auth.middleware.js';
 
-export const communityRoutes = Router();
+export const communityRoutes: Router = Router();
 
 communityRoutes.get('/', async (req, res, next) => {
   try {

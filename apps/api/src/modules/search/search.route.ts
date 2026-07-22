@@ -3,7 +3,7 @@ import { searchQuerySchema } from '@lastbench/shared';
 import { validate } from '../../middleware/validate.js';
 import { prisma } from '../../lib/prisma.js';
 
-export const searchRoutes = Router();
+export const searchRoutes: Router = Router();
 
 searchRoutes.get('/', validate(searchQuerySchema, 'query'), async (req, res, next) => {
   try {

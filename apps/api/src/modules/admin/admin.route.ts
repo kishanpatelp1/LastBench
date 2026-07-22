@@ -5,7 +5,7 @@ import { validate } from '../../middleware/validate.js';
 import { requireAuth, requireRole } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../lib/prisma.js';
 
-export const adminRoutes = Router();
+export const adminRoutes: Router = Router();
 
 // Submit report (any authenticated user)
 adminRoutes.post('/reports', requireAuth(), validate(createReportSchema), async (req, res, next) => {
