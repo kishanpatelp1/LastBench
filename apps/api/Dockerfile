@@ -15,14 +15,29 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY . .
+# L-3: Run prisma generate explicitly before building so the Prisma Client
+# is always regenerated from the current schema, regardless of build script changes
+RUN pnpm --filter @lastbench/api exec prisma generate
 RUN pnpm --filter @lastbench/api build
 
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/prisma ./prisma
-COPY --from=builder /app/apps/api/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
+
+# L-5: Run as non-root user — container escape vulnerabilities are far less
+# dangerous when the process doesn't have root privileges
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser  --system --uid 1001 --ingroup nodejs lastbench
+
+COPY --from=builder --chown=lastbench:nodejs /app/apps/api/dist ./dist
+COPY --from=builder --chown=lastbench:nodejs /app/apps/api/prisma ./prisma
+COPY --from=builder --chown=lastbench:nodejs /app/apps/api/package.json ./
+COPY --from=builder --chown=lastbench:nodejs /app/node_modules ./node_modules
+
+# Create uploads directory with correct ownership
+RUN mkdir -p ./uploads && chown lastbench:nodejs ./uploads
+
+USER lastbench
+
 EXPOSE 3001
 CMD ["node", "dist/index.js"]

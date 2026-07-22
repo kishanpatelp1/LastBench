@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { enqueueNotification } from '../../workers/index.js';
 import type { CreateCommentInput } from '@lastbench/shared';
 
 export const commentService = {
@@ -32,6 +33,34 @@ export const commentService = {
       where: { id: input.postId },
       data: { commentCount: { increment: 1 } },
     });
+
+    // M-9: Notify post author when someone comments (skip self-notifications)
+    if (post.authorId && post.authorId !== authorId) {
+      await enqueueNotification(
+        post.authorId,
+        'COMMENT',
+        'New comment on your post',
+        `Someone commented on your post.`,
+        { postId: input.postId, commentId: comment.id },
+      );
+    }
+
+    // M-9: Notify parent comment author when someone replies
+    if (input.parentId) {
+      const parent = await prisma.comment.findUnique({
+        where: { id: input.parentId },
+        select: { authorId: true },
+      });
+      if (parent && parent.authorId !== authorId) {
+        await enqueueNotification(
+          parent.authorId,
+          'REPLY',
+          'New reply to your comment',
+          `Someone replied to your comment.`,
+          { postId: input.postId, commentId: comment.id },
+        );
+      }
+    }
 
     return this.formatComment(comment);
   },
@@ -79,31 +108,36 @@ export const commentService = {
   },
 
   async vote(commentId: string, userId: string, type: 'UP' | 'DOWN') {
-    const existing = await prisma.vote.findUnique({
-      where: { userId_commentId: { userId, commentId } },
-    });
+    // C-3: Atomic transaction prevents double-vote race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.vote.findUnique({
+        where: { userId_commentId: { userId, commentId } },
+      });
 
-    let scoreDelta = 0;
-    if (existing) {
-      if (existing.type === type) {
-        await prisma.vote.delete({ where: { id: existing.id } });
-        scoreDelta = type === 'UP' ? -1 : 1;
+      let scoreDelta = 0;
+      if (existing) {
+        if (existing.type === type) {
+          await tx.vote.delete({ where: { id: existing.id } });
+          scoreDelta = type === 'UP' ? -1 : 1;
+        } else {
+          await tx.vote.update({ where: { id: existing.id }, data: { type } });
+          scoreDelta = type === 'UP' ? 2 : -2;
+        }
       } else {
-        await prisma.vote.update({ where: { id: existing.id }, data: { type } });
-        scoreDelta = type === 'UP' ? 2 : -2;
+        await tx.vote.create({ data: { userId, commentId, type } });
+        scoreDelta = type === 'UP' ? 1 : -1;
       }
-    } else {
-      await prisma.vote.create({ data: { userId, commentId, type } });
-      scoreDelta = type === 'UP' ? 1 : -1;
-    }
 
-    const updated = await prisma.comment.update({
-      where: { id: commentId },
-      data: { score: { increment: scoreDelta } },
-      select: { score: true },
+      const updated = await tx.comment.update({
+        where: { id: commentId },
+        data: { score: { increment: scoreDelta } },
+        select: { score: true },
+      });
+
+      return { commentId, score: updated.score };
     });
 
-    return { commentId, score: updated.score };
+    return result;
   },
 
   formatComment(comment: Record<string, unknown>) {

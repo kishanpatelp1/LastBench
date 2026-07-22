@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { AppError } from './error-handler.js';
+import { hashToken } from '../modules/auth/auth.service.js';
 
 // Extend Express Request to carry auth context
 declare global {
@@ -21,9 +22,11 @@ export function requireAuth() {
         throw new AppError(401, 'Authentication required');
       }
 
-      const token = authHeader.slice(7);
+      const rawToken = authHeader.slice(7);
+      const tokenHash = hashToken(rawToken); // C-1: hash before lookup
+
       const session = await prisma.session.findUnique({
-        where: { token },
+        where: { token: tokenHash },
         include: { user: { select: { id: true, role: true, isBanned: true } } },
       });
 
@@ -54,9 +57,11 @@ export function optionalAuth() {
     try {
       const authHeader = req.headers.authorization;
       if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.slice(7);
+        const rawToken = authHeader.slice(7);
+        const tokenHash = hashToken(rawToken); // C-1: hash before lookup
+
         const session = await prisma.session.findUnique({
-          where: { token },
+          where: { token: tokenHash },
           include: { user: { select: { id: true, role: true, isBanned: true } } },
         });
 

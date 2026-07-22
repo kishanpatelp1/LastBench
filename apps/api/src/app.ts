@@ -14,35 +14,93 @@ import { notificationRoutes } from './modules/notifications/notifications.route.
 import { searchRoutes } from './modules/search/search.route.js';
 import { adminRoutes } from './modules/admin/admin.route.js';
 import { uploadRoutes } from './modules/upload/upload.route.js';
+import { prisma } from './lib/prisma.js';
+import { redis } from './lib/redis.js';
+import { logger } from './lib/logger.js';
 
 export function createApp() {
   const app = express();
 
   // ─── Global Middleware ──────────────────────────
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    // C-5: Force Content-Disposition: attachment on static uploads (served via /uploads)
+    // This prevents browsers from rendering uploaded SVGs/HTML as pages (stored XSS)
+    crossOriginEmbedderPolicy: false,
+  }));
   app.use(cors({
     origin: env.CORS_ORIGIN,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
-  app.use(morgan('dev'));
+
+  // L-4: Use 'combined' format in production (structured, machine-parseable)
+  // In development, 'dev' is colourful and concise for the terminal
+  app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   app.use(rateLimiter());
 
   // ─── Static uploads ────────────────────────────
-  app.use('/uploads', express.static(env.UPLOAD_DIR));
+  // C-5: Force attachment disposition so uploaded files are never rendered as HTML
+  app.use('/uploads', (req, res, next) => {
+    res.setHeader('Content-Disposition', 'attachment');
+    next();
+  }, express.static(env.UPLOAD_DIR));
 
-  // ─── Health Check ───────────────────────────────
-  app.get('/health', (_req, res) => {
-    res.json({
-      success: true,
-      message: 'LastBench API is running',
+  // ─── Health Checks (M-3) ────────────────────────
+  // /health/live — is the process alive? (for k8s liveness probe)
+  app.get('/health/live', (_req, res) => {
+    res.json({ success: true, status: 'alive' });
+  });
+
+  // /health/ready — are all dependencies reachable? (for k8s readiness probe)
+  app.get('/health/ready', async (_req, res) => {
+    const checks: Record<string, 'ok' | 'error'> = {};
+    let isHealthy = true;
+
+    // Check PostgreSQL
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      checks.database = 'ok';
+    } catch {
+      checks.database = 'error';
+      isHealthy = false;
+    }
+
+    // Check Redis
+    try {
+      await redis.ping();
+      checks.redis = 'ok';
+    } catch {
+      checks.redis = 'error';
+      isHealthy = false;
+    }
+
+    if (!isHealthy) {
+      logger.warn({ checks }, 'Health check failed');
+    }
+
+    res.status(isHealthy ? 200 : 503).json({
+      success: isHealthy,
+      status: isHealthy ? 'ready' : 'degraded',
+      checks,
       timestamp: new Date().toISOString(),
       environment: env.NODE_ENV,
     });
+  });
+
+  // Legacy /health alias — Railway uses this by default
+  app.get('/health', async (_req, res) => {
+    try {
+      await Promise.all([prisma.$queryRaw`SELECT 1`, redis.ping()]);
+      res.json({ success: true, message: 'LastBench API is running', timestamp: new Date().toISOString() });
+    } catch {
+      res.status(503).json({ success: false, message: 'Service unavailable' });
+    }
   });
 
   // ─── Routes ─────────────────────────────────────

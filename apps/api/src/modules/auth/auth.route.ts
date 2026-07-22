@@ -1,9 +1,16 @@
 import { Router } from 'express';
-import { registerSchema, loginSchema, updateProfileSchema } from '@lastbench/shared';
+import {
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from '@lastbench/shared';
 import { authService } from './auth.service.js';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth } from '../../middleware/auth.middleware.js';
 import { authRateLimiter } from '../../middleware/rate-limit.js';
+import { z } from 'zod';
 
 export const authRoutes = Router();
 
@@ -46,3 +53,41 @@ authRoutes.patch('/profile', requireAuth(), validate(updateProfileSchema), async
     res.json({ success: true, data: user });
   } catch (err) { next(err); }
 });
+
+// GET /api/auth/verify-email?token=... (H-1)
+const verifyEmailSchema = z.object({ token: z.string().min(1) });
+authRoutes.get('/verify-email', validate(verifyEmailSchema, 'query'), async (req, res, next) => {
+  try {
+    const { token } = req.validated as { token: string };
+    const result = await authService.verifyEmail(token);
+    res.json({ success: true, data: result });
+  } catch (err) { next(err); }
+});
+
+// POST /api/auth/forgot-password (H-2)
+authRoutes.post(
+  '/forgot-password',
+  authRateLimiter(),
+  validate(forgotPasswordSchema),
+  async (req, res, next) => {
+    try {
+      const { email } = req.validated as { email: string };
+      const result = await authService.forgotPassword(email);
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  },
+);
+
+// POST /api/auth/reset-password (H-2)
+authRoutes.post(
+  '/reset-password',
+  authRateLimiter(),
+  validate(resetPasswordSchema),
+  async (req, res, next) => {
+    try {
+      const { token, password } = req.validated as { token: string; password: string };
+      const result = await authService.resetPassword(token, password);
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  },
+);

@@ -37,7 +37,13 @@ export const notificationService = {
 
   async create(recipientId: string, type: string, title: string, body?: string, data?: Record<string, unknown>) {
     return prisma.notification.create({
-      data: { recipientId, type: type as never, title, body, data: data ?? undefined },
+      data: {
+        recipientId,
+        type: type as never,
+        title,
+        body,
+        data: data ? (JSON.parse(JSON.stringify(data)) as never) : undefined,
+      },
     });
   },
 };

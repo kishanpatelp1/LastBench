@@ -24,7 +24,7 @@ commentRoutes.post('/', requireAuth(), validate(createCommentSchema), async (req
 commentRoutes.post('/:id/vote', requireAuth(), validate(voteSchema), async (req, res, next) => {
   try {
     const { type } = req.validated as { type: 'UP' | 'DOWN' };
-    const result = await commentService.vote(req.params.id!, req.userId!, type);
+    const result = await commentService.vote(String(req.params.id), req.userId!, type);
     res.json({ success: true, data: result });
   } catch (err) { next(err); }
 });

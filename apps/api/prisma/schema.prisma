@@ -59,6 +59,14 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // H-1: Email verification fields
+  emailVerificationToken  String?
+  emailVerificationExpiry DateTime?
+
+  // H-2: Password reset fields
+  passwordResetToken  String?
+  passwordResetExpiry DateTime?
+
   sessions       Session[]
   oauthAccounts  OAuthAccount[]
   posts          Post[]
@@ -88,6 +96,7 @@ model Session {
 
   @@index([token])
   @@index([userId])
+  @@index([expiresAt]) // C-2: Index for efficient expired session cleanup
 }
 
 model OAuthAccount {
@@ -182,29 +191,33 @@ model Poll {
   postId    String       @unique
   expiresAt DateTime?
 
-  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  options PollOption[]
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  options   PollOption[]
+  pollVotes PollVote[]   // M-7: back-relation required by PollVote.poll
 }
 
 model PollOption {
-  id     String     @id @default(cuid())
-  pollId String
-  text   String
-  orderNum Int      @default(0)
+  id       String @id @default(cuid())
+  pollId   String
+  text     String
+  orderNum Int    @default(0)
 
   poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes PollVote[]
 }
 
+// M-7: Added pollId to PollVote so we can enforce @@unique([userId, pollId])
 model PollVote {
   id       String @id @default(cuid())
   userId   String
   optionId String
+  pollId   String // M-7: denormalized pollId for correct unique constraint
 
   user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, optionId])
+  @@unique([userId, pollId]) // M-7: prevents voting twice on same poll
 }
 
 // ─── Comments ──────────────────────────────────────
@@ -269,6 +282,7 @@ model Report {
   comment      Comment? @relation(fields: [commentId], references: [id])
 
   @@index([status])
+  @@index([createdAt(sort: Desc)])
 }
 
 // ─── Notifications ─────────────────────────────────

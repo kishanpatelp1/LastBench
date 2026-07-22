@@ -58,6 +58,16 @@ export const postService = {
   async getFeed(query: FeedQuery, userId?: string) {
     const { cursor, limit, sort, timeRange, communityId, college } = query;
 
+    // M-8: Cache-aside — only cache anonymous, first-page, default-sort feeds
+    const cacheKey = !userId && !cursor
+      ? `feed:${sort}:${timeRange}:${communityId ?? 'all'}:${college ?? 'all'}:${limit}`
+      : null;
+
+    if (cacheKey) {
+      const cached = await getCache<ReturnType<typeof this.formatPost>[]>(cacheKey);
+      if (cached) return { items: cached, nextCursor: undefined, hasMore: false };
+    }
+
     // Build where clause
     const where: Record<string, unknown> = { isDeleted: false };
     if (communityId) where.communityId = communityId;
@@ -98,9 +108,15 @@ export const postService = {
 
     const hasMore = posts.length > limit;
     const items = hasMore ? posts.slice(0, -1) : posts;
+    const formatted = items.map((post) => this.formatPost(post, userId));
+
+    // M-8: Populate cache for anonymous first-page results (TTL 60s)
+    if (cacheKey && !hasMore) {
+      await setCache(cacheKey, formatted, 60);
+    }
 
     return {
-      items: items.map((post) => this.formatPost(post, userId)),
+      items: formatted,
       nextCursor: hasMore ? items[items.length - 1]?.id : undefined,
       hasMore,
     };
@@ -132,43 +148,48 @@ export const postService = {
   },
 
   async vote(postId: string, userId: string, input: VoteInput) {
-    const post = await prisma.post.findUnique({ where: { id: postId } });
-    if (!post) throw new AppError(404, 'Post not found');
+    // C-3: Wrap all vote mutations in a transaction to prevent race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      const post = await tx.post.findUnique({ where: { id: postId } });
+      if (!post) throw new AppError(404, 'Post not found');
 
-    const existing = await prisma.vote.findUnique({
-      where: { userId_postId: { userId, postId } },
-    });
-
-    let scoreDelta = 0;
-
-    if (existing) {
-      if (existing.type === input.type) {
-        // Remove vote
-        await prisma.vote.delete({ where: { id: existing.id } });
-        scoreDelta = input.type === 'UP' ? -1 : 1;
-      } else {
-        // Change vote
-        await prisma.vote.update({
-          where: { id: existing.id },
-          data: { type: input.type },
-        });
-        scoreDelta = input.type === 'UP' ? 2 : -2;
-      }
-    } else {
-      // New vote
-      await prisma.vote.create({
-        data: { userId, postId, type: input.type },
+      const existing = await tx.vote.findUnique({
+        where: { userId_postId: { userId, postId } },
       });
-      scoreDelta = input.type === 'UP' ? 1 : -1;
-    }
 
-    const updated = await prisma.post.update({
-      where: { id: postId },
-      data: { score: { increment: scoreDelta } },
-      select: { score: true },
+      let scoreDelta = 0;
+
+      if (existing) {
+        if (existing.type === input.type) {
+          // Remove vote (toggle off)
+          await tx.vote.delete({ where: { id: existing.id } });
+          scoreDelta = input.type === 'UP' ? -1 : 1;
+        } else {
+          // Change vote direction
+          await tx.vote.update({
+            where: { id: existing.id },
+            data: { type: input.type },
+          });
+          scoreDelta = input.type === 'UP' ? 2 : -2;
+        }
+      } else {
+        // New vote
+        await tx.vote.create({
+          data: { userId, postId, type: input.type },
+        });
+        scoreDelta = input.type === 'UP' ? 1 : -1;
+      }
+
+      const updated = await tx.post.update({
+        where: { id: postId },
+        data: { score: { increment: scoreDelta } },
+        select: { score: true },
+      });
+
+      return { postId, score: updated.score };
     });
 
-    return { postId, score: updated.score };
+    return result;
   },
 
   async votePoll(postId: string, userId: string, optionId: string) {

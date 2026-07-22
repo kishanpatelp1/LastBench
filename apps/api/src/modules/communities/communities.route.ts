@@ -16,7 +16,7 @@ communityRoutes.get('/', async (req, res, next) => {
 
 communityRoutes.get('/:slug', async (req, res, next) => {
   try {
-    const community = await communityService.getBySlug(req.params.slug!);
+    const community = await communityService.getBySlug(String(req.params.slug));
     res.json({ success: true, data: community });
   } catch (err) { next(err); }
 });
@@ -30,14 +30,14 @@ communityRoutes.post('/', requireAuth(), requireRole('ADMIN'), validate(createCo
 
 communityRoutes.post('/:id/join', requireAuth(), async (req, res, next) => {
   try {
-    const result = await communityService.join(req.params.id!, req.userId!);
+    const result = await communityService.join(String(req.params.id), req.userId!);
     res.json({ success: true, data: result });
   } catch (err) { next(err); }
 });
 
 communityRoutes.post('/:id/leave', requireAuth(), async (req, res, next) => {
   try {
-    const result = await communityService.leave(req.params.id!, req.userId!);
+    const result = await communityService.leave(String(req.params.id), req.userId!);
     res.json({ success: true, data: result });
   } catch (err) { next(err); }
 });

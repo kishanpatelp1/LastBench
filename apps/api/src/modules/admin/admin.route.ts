@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { createReportSchema } from '@lastbench/shared';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth, requireRole } from '../../middleware/auth.middleware.js';
@@ -16,31 +17,58 @@ adminRoutes.post('/reports', requireAuth(), validate(createReportSchema), async 
   } catch (err) { next(err); }
 });
 
-// Admin: Get reports
-adminRoutes.get('/reports', requireAuth(), requireRole('ADMIN', 'MODERATOR'), async (req, res, next) => {
+// H-3: Validated status schema using the actual ReportStatus enum values
+const reportStatusSchema = z.object({
+  status: z.enum(['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED'], {
+    errorMap: () => ({ message: 'status must be one of: PENDING, REVIEWED, RESOLVED, DISMISSED' }),
+  }),
+});
+
+// M-6: Cursor-based pagination schema for admin reports list
+const reportsQuerySchema = z.object({
+  status: z.enum(['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED']).optional().default('PENDING'),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+});
+
+// Admin: Get reports (M-6: now cursor-paginated, consistent with other endpoints)
+adminRoutes.get('/reports', requireAuth(), requireRole('ADMIN', 'MODERATOR'), validate(reportsQuerySchema, 'query'), async (req, res, next) => {
   try {
-    const status = (req.query.status as string) ?? 'PENDING';
+    const { status, cursor, limit } = req.validated as { status: string; cursor?: string; limit: number };
+
     const reports = await prisma.report.findMany({
       where: { status: status as never },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         reporter: { select: { id: true, username: true } },
         post: { select: { id: true, content: true } },
         comment: { select: { id: true, content: true } },
       },
     });
-    res.json({ success: true, data: reports });
+
+    const hasMore = reports.length > limit;
+    const items = hasMore ? reports.slice(0, -1) : reports;
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        nextCursor: hasMore ? items[items.length - 1]?.id : undefined,
+        hasMore,
+      },
+    });
   } catch (err) { next(err); }
 });
 
-// Admin: Resolve report
-adminRoutes.patch('/reports/:id', requireAuth(), requireRole('ADMIN', 'MODERATOR'), async (req, res, next) => {
+// Admin: Resolve report (H-3: body is now Zod-validated against enum)
+adminRoutes.patch('/reports/:id', requireAuth(), requireRole('ADMIN', 'MODERATOR'), validate(reportStatusSchema), async (req, res, next) => {
   try {
-    const { status } = req.body;
+    const { status } = req.validated as { status: string };
     const report = await prisma.report.update({
-      where: { id: req.params.id },
-      data: { status, resolvedAt: new Date() },
+      where: { id: req.params.id as string },
+      data: { status: status as never, resolvedAt: new Date() },
     });
     res.json({ success: true, data: report });
   } catch (err) { next(err); }
@@ -49,7 +77,7 @@ adminRoutes.patch('/reports/:id', requireAuth(), requireRole('ADMIN', 'MODERATOR
 // Admin: Ban user
 adminRoutes.post('/users/:id/ban', requireAuth(), requireRole('ADMIN'), async (req, res, next) => {
   try {
-    await prisma.user.update({ where: { id: req.params.id }, data: { isBanned: true } });
+    await prisma.user.update({ where: { id: req.params.id as string }, data: { isBanned: true } });
     res.json({ success: true });
   } catch (err) { next(err); }
 });
