@@ -8,6 +8,11 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @lastbench/api exec prisma generate
 RUN pnpm --filter @lastbench/api build
 RUN pnpm --filter @lastbench/api deploy --prod /app/pruned
+# pnpm deploy --prod copies @prisma/client but NOT the generated query engine.
+# Copy the generated .prisma directory from the full build into the pruned deployment.
+RUN DEST=$(find /app/pruned/node_modules -path '*/@prisma+client@*/node_modules' -type d | head -1) && \
+    SRC=$(find /app/node_modules -path '*/@prisma+client@*/node_modules/.prisma' -type d | head -1) && \
+    cp -r "$SRC" "$DEST/"
 
 FROM base AS runner
 WORKDIR /app
