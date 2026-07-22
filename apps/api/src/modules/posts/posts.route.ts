@@ -4,7 +4,7 @@ import { postService } from './posts.service.js';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth, optionalAuth } from '../../middleware/auth.middleware.js';
 
-export const postRoutes = Router();
+export const postRoutes: Router = Router();
 
 // GET /api/posts — Feed
 postRoutes.get('/', optionalAuth(), validate(feedQuerySchema, 'query'), async (req, res, next) => {

@@ -4,7 +4,7 @@ import { commentService } from './comments.service.js';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth } from '../../middleware/auth.middleware.js';
 
-export const commentRoutes = Router();
+export const commentRoutes: Router = Router();
 
 commentRoutes.get('/', validate(commentQuerySchema, 'query'), async (req, res, next) => {
   try {

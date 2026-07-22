@@ -12,7 +12,7 @@ import { requireAuth } from '../../middleware/auth.middleware.js';
 import { authRateLimiter } from '../../middleware/rate-limit.js';
 import { z } from 'zod';
 
-export const authRoutes = Router();
+export const authRoutes: Router = Router();
 
 // POST /api/auth/register
 authRoutes.post('/register', authRateLimiter(), validate(registerSchema), async (req, res, next) => {

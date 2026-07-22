@@ -29,7 +29,7 @@ const upload = multer({
   },
 });
 
-export const uploadRoutes = Router();
+export const uploadRoutes: Router = Router();
 
 uploadRoutes.post('/', requireAuth(), upload.single('file'), async (req, res, next) => {
   try {

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -18,7 +18,7 @@ import { prisma } from './lib/prisma.js';
 import { redis } from './lib/redis.js';
 import { logger } from './lib/logger.js';
 
-export function createApp() {
+export function createApp(): Express {
   const app = express();
 
   // ─── Global Middleware ──────────────────────────

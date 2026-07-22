@@ -25,7 +25,7 @@ export const communityService = {
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { members: true, posts: true } } },
     });
-    return communities.map((c) => ({
+    return communities.map((c: (typeof communities)[number]) => ({
       ...c,
       memberCount: c._count.members,
       postCount: c._count.posts,
