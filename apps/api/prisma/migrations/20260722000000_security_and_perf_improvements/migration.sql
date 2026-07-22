@@ -32,7 +32,8 @@ ALTER TABLE "PollVote" ALTER COLUMN "pollId" SET NOT NULL;
 
 -- Step 4: Add foreign key constraint for pollId -> Poll.id
 ALTER TABLE "PollVote"
-  ADD CONSTRAINT IF NOT EXISTS "PollVote_pollId_fkey"
+  DROP CONSTRAINT IF EXISTS "PollVote_pollId_fkey",
+  ADD CONSTRAINT "PollVote_pollId_fkey"
   FOREIGN KEY ("pollId") REFERENCES "Poll"("id")
   ON DELETE CASCADE ON UPDATE CASCADE;
 
