@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://lastbench-api.onrender.com/api/:path*"
+      "destination": "https://lastbench-api-8zyb.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
