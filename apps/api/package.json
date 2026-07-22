@@ -7,7 +7,7 @@
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "prisma generate && tsup",
     "start": "node --env-file=.env dist/index.js",
-    "type-check": "tsc --noEmit"
+    "type-check": "prisma generate && tsc --noEmit"
   },
   "dependencies": {
     "@lastbench/shared": "workspace:*",
