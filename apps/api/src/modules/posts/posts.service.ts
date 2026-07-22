@@ -217,7 +217,7 @@ export const postService = {
     if (existing) throw new AppError(400, 'You have already voted on this poll');
 
     await prisma.pollVote.create({
-      data: { userId, optionId },
+      data: { userId, optionId, pollId: poll.id },
     });
 
     return { success: true };
