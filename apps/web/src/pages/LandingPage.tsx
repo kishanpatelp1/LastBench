@@ -1,3 +1,4 @@
+// force-rebuild: index.html updated for Google OAuth verification
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Shield, Zap, Users, MessageSquare, BarChart3, Eye } from 'lucide-react';
