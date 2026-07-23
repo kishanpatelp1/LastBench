@@ -3,33 +3,10 @@ import type { ApiResponse, PaginatedResponse } from '@lastbench/shared';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiClient {
-  private token: string | null = null;
-
-  setToken(token: string | null) {
-    this.token = token;
-    if (token) {
-      localStorage.setItem('lastbench-token', token);
-    } else {
-      localStorage.removeItem('lastbench-token');
-    }
-  }
-
-  getToken(): string | null {
-    if (!this.token) {
-      this.token = localStorage.getItem('lastbench-token');
-    }
-    return this.token;
-  }
-
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const token = this.getToken();
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) ?? {}),
     };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
 
     if (!(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
@@ -38,6 +15,7 @@ class ApiClient {
     const res = await fetch(`${API_URL}${path}`, {
       ...options,
       headers,
+      credentials: 'include', // send the httpOnly session cookie on every request
     });
 
     const data = await res.json() as ApiResponse<T>;
@@ -51,16 +29,30 @@ class ApiClient {
 
   // Auth
   async register(body: Record<string, unknown>) {
-    return this.request<{ user: Record<string, unknown>; token: string }>('/auth/register', {
+    return this.request<{ user: Record<string, unknown> }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
   async login(body: Record<string, unknown>) {
-    return this.request<{ user: Record<string, unknown>; token: string }>('/auth/login', {
+    return this.request<{ user: Record<string, unknown> }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(body),
+    });
+  }
+
+  async forgotPassword(email: string) {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token: string, password: string) {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
     });
   }
 
@@ -70,6 +62,14 @@ class ApiClient {
 
   async getMe() {
     return this.request<Record<string, unknown>>('/auth/me');
+  }
+
+  async verifyEmail(token: string) {
+    return this.request(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+  }
+
+  async resendVerification() {
+    return this.request('/auth/resend-verification', { method: 'POST' });
   }
 
   async updateProfile(body: Record<string, unknown>) {

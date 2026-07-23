@@ -12,6 +12,7 @@ interface User {
   branch: string | null;
   year: number | null;
   bio: string | null;
+  emailVerified: boolean;
   createdAt: string;
   _count?: { posts: number; comments: number };
 }
@@ -35,34 +36,32 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user, isAuthenticated: !!user }),
 
   login: async (email, password) => {
+    // Cookie is set by the server; we only need the user object
     const result = await api.login({ email, password });
-    api.setToken(result.token);
     set({ user: result.user as unknown as User, isAuthenticated: true });
   },
 
   register: async (data) => {
+    // Cookie is set by the server; we only need the user object
     const result = await api.register(data);
-    api.setToken(result.token);
     set({ user: result.user as unknown as User, isAuthenticated: true });
   },
 
   logout: async () => {
-    try { await api.logout(); } catch { /* ignore */ }
-    api.setToken(null);
+    try {
+      // Server clears the httpOnly cookie via Set-Cookie: session=; Max-Age=0
+      await api.logout();
+    } catch { /* ignore network errors on logout */ }
     set({ user: null, isAuthenticated: false });
   },
 
   checkAuth: async () => {
     try {
-      const token = api.getToken();
-      if (!token) {
-        set({ isLoading: false, user: null, isAuthenticated: false });
-        return;
-      }
+      // No token to read — the httpOnly cookie is sent automatically by the browser
       const user = await api.getMe();
       set({ user: user as unknown as User, isAuthenticated: true, isLoading: false });
     } catch {
-      api.setToken(null);
+      // Cookie missing, expired, or invalid — treat as unauthenticated
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },

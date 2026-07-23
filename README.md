@@ -111,9 +111,29 @@ pnpm db:seed
 pnpm dev
 ```
 
-Frontend: http://localhost:3000
-Backend API: http://localhost:3001
+Frontend: http://localhost:3000  
+Backend API: http://localhost:3001  
 Prisma Studio: `pnpm db:studio`
+
+### Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services → Credentials → Create OAuth 2.0 Client ID** (Web application)
+2. Add these **Authorized redirect URIs** (both at once):
+   - `http://localhost:3000/api/auth/google/callback` (dev — routes through Vite proxy)
+   - `https://<your-vercel-domain>/api/auth/google/callback` (prod — routes through Vercel proxy)
+   > ⚠️ The callback URL **must** go through the frontend proxy, not directly to the API URL (e.g. onrender.com). This ensures the session cookie is set on the frontend domain.
+3. Copy **Client ID** and **Client Secret** into your `.env`:
+   ```
+   GOOGLE_CLIENT_ID="..."
+   GOOGLE_CLIENT_SECRET="..."
+   GOOGLE_CALLBACK_URL="http://localhost:3000/api/auth/google/callback"  # dev
+   FRONTEND_URL="http://localhost:3000"  # dev
+   ```
+4. For production, set these env vars in your Render dashboard:
+   ```
+   GOOGLE_CALLBACK_URL=https://<vercel-domain>/api/auth/google/callback
+   FRONTEND_URL=https://<vercel-domain>
+   ```
 
 ### Demo Credentials
 
@@ -127,6 +147,8 @@ Prisma Studio: `pnpm db:studio`
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
+| GET | /api/auth/google | ❌ | Initiate Google OAuth |
+| GET | /api/auth/google/callback | ❌ | Google OAuth callback |
 | POST | /api/auth/register | ❌ | Register |
 | POST | /api/auth/login | ❌ | Login |
 | POST | /api/auth/logout | ✅ | Logout |

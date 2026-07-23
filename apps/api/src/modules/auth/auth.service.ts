@@ -227,4 +227,105 @@ export const authService = {
 
     return { message: 'Password reset successfully. Please log in again.' };
   },
+
+  // OAuth: Create a session token and store its hash — reusable by any OAuth provider
+  async createSession(userId: string): Promise<string> {
+    const rawToken = generateSessionToken();
+    const tokenHash = hashToken(rawToken);
+    await prisma.session.create({
+      data: { userId, token: tokenHash, expiresAt: new Date(Date.now() + SESSION_TTL_MS) },
+    });
+    return rawToken;
+  },
+
+  // OAuth: Find or create a user from a Google profile
+  async findOrCreateGoogleUser(profile: import('passport-google-oauth20').Profile) {
+    const googleId = profile.id;
+    const email = profile.emails?.[0]?.value;
+    const displayName = profile.displayName;
+    const avatarUrl = profile.photos?.[0]?.value ?? null;
+
+    if (!email) throw new AppError(400, 'Google account has no associated email address');
+
+    // 1. OAuthAccount already linked to this Google ID?
+    const existingOAuth = await prisma.oAuthAccount.findUnique({
+      where: { provider_providerId: { provider: 'google', providerId: googleId } },
+      include: {
+        user: {
+          select: {
+            id: true, email: true, username: true, displayName: true, role: true,
+            avatarUrl: true, college: true, branch: true, year: true, bio: true,
+            emailVerified: true, createdAt: true,
+          },
+        },
+      },
+    });
+    if (existingOAuth) return existingOAuth.user;
+
+    // 2. User exists with this email? Link accounts.
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true, email: true, username: true, displayName: true, role: true,
+        avatarUrl: true, college: true, branch: true, year: true, bio: true,
+        emailVerified: true, createdAt: true,
+      },
+    });
+    if (existingUser) {
+      await prisma.oAuthAccount.create({
+        data: { userId: existingUser.id, provider: 'google', providerId: googleId },
+      });
+      // Google already verified this email — mark it verified on our side too
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { emailVerified: true } as never,
+      });
+      return { ...existingUser, emailVerified: true };
+    }
+
+    // 3. Brand-new user — no password (OAuth-only account)
+    const base = (displayName ?? email.split('@')[0])
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .slice(0, 25)
+      .replace(/^_|_$/g, '') || 'user';
+
+    let username = base;
+    let attempt = 0;
+    while (await prisma.user.findUnique({ where: { username } })) {
+      attempt++;
+      username = `${base}_${attempt}`;
+    }
+
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        username,
+        displayName: displayName ?? username,
+        avatarUrl,
+        emailVerified: true, // Google already verified the address
+        // passwordHash intentionally omitted — nullable in schema
+        oauthAccounts: {
+          create: { provider: 'google', providerId: googleId },
+        },
+      } as never,
+      select: {
+        id: true, email: true, username: true, displayName: true, role: true,
+        avatarUrl: true, college: true, branch: true, year: true, bio: true,
+        emailVerified: true, createdAt: true,
+      },
+    });
+
+    // Auto-join default communities
+    const defaults = await prisma.community.findMany({ where: { isDefault: true }, select: { id: true } });
+    if (defaults.length > 0) {
+      await prisma.communityMember.createMany({
+        data: defaults.map((c: { id: string }) => ({ userId: newUser.id, communityId: c.id })),
+        skipDuplicates: true,
+      });
+    }
+
+    return newUser;
+  },
 };

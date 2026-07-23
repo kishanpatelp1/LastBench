@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/auth-store';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
+import { GoogleButton } from '../components/GoogleButton';
 
 export function RegisterPage() {
   const { register: registerUser } = useAuthStore();
@@ -30,7 +31,7 @@ export function RegisterPage() {
     }
   };
 
-  const inputClass = 'w-full pl-12 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm';
+  const inputClass = 'w-full pl-12 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm disabled:opacity-50';
 
   return (
     <div className="space-y-6">
@@ -39,13 +40,23 @@ export function RegisterPage() {
         <p className="text-muted-foreground mt-2">Join your campus community anonymously</p>
       </div>
 
+      {/* Google OAuth */}
+      <GoogleButton />
+
+      {/* Divider */}
+      <div className="relative flex items-center gap-4">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-muted-foreground">or sign up with email</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Username</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input {...register('username')} placeholder="anon_coder" className={inputClass} />
+              <input {...register('username')} disabled={isSubmitting} placeholder="anon_coder" className={inputClass} />
             </div>
             {errors.username && <p className="text-xs text-red-400">{errors.username.message}</p>}
           </div>
@@ -54,7 +65,7 @@ export function RegisterPage() {
             <label className="text-sm font-medium text-foreground">Display Name</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input {...register('displayName')} placeholder="Display Name" className={inputClass} />
+              <input {...register('displayName')} disabled={isSubmitting} placeholder="Display Name" className={inputClass} />
             </div>
           </div>
         </div>
@@ -63,7 +74,7 @@ export function RegisterPage() {
           <label className="text-sm font-medium text-foreground">Email</label>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <input {...register('email')} type="email" placeholder="you@college.edu" className={inputClass} />
+            <input {...register('email')} disabled={isSubmitting} type="email" placeholder="you@college.edu" className={inputClass} />
           </div>
           {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
         </div>
@@ -72,8 +83,8 @@ export function RegisterPage() {
           <label className="text-sm font-medium text-foreground">Password</label>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <input {...register('password')} type={showPassword ? 'text' : 'password'} placeholder="Min 8 chars, 1 uppercase, 1 number" className={`${inputClass} !pr-12`} />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground cursor-pointer">
+            <input {...register('password')} disabled={isSubmitting} type={showPassword ? 'text' : 'password'} placeholder="Min 8 chars, 1 uppercase, 1 number" className={`${inputClass} !pr-12`} />
+            <button type="button" disabled={isSubmitting} onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground cursor-pointer disabled:opacity-50">
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
@@ -85,14 +96,14 @@ export function RegisterPage() {
             <label className="text-sm font-medium text-foreground">College</label>
             <div className="relative">
               <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input {...register('college')} placeholder="IIT Madras" className={inputClass} />
+              <input {...register('college')} disabled={isSubmitting} placeholder="IIT Madras" className={inputClass} />
             </div>
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Branch</label>
             <div className="relative">
               <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input {...register('branch')} placeholder="CS" className={inputClass} />
+              <input {...register('branch')} disabled={isSubmitting} placeholder="CS" className={inputClass} />
             </div>
           </div>
         </div>

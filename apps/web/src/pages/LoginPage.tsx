@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/auth-store';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { GoogleButton } from '../components/GoogleButton';
 
 export function LoginPage() {
   const { login } = useAuthStore();
@@ -36,6 +37,16 @@ export function LoginPage() {
         <p className="text-muted-foreground mt-2">Sign in to your account to continue</p>
       </div>
 
+      {/* Google OAuth */}
+      <GoogleButton />
+
+      {/* Divider */}
+      <div className="relative flex items-center gap-4">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-muted-foreground">or continue with email</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Email */}
         <div className="space-y-2">
@@ -45,8 +56,9 @@ export function LoginPage() {
             <input
               {...register('email')}
               type="email"
+              disabled={isSubmitting}
               placeholder="you@college.edu"
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              className="w-full pl-12 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
             />
           </div>
           {errors.email && <p className="text-sm text-red-400">{errors.email.message}</p>}
@@ -60,18 +72,27 @@ export function LoginPage() {
             <input
               {...register('password')}
               type={showPassword ? 'text' : 'password'}
+              disabled={isSubmitting}
               placeholder="••••••••"
-              className="w-full pl-12 pr-12 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              className="w-full pl-12 pr-12 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
             />
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          {errors.password && <p className="text-sm text-red-400">{errors.password.message}</p>}
+          <div className="flex items-center justify-between">
+            {errors.password ? (
+              <p className="text-sm text-red-400">{errors.password.message}</p>
+            ) : <span />}
+            <Link to="/forgot-password" className="text-xs text-primary hover:underline font-medium ml-auto">
+              Forgot password?
+            </Link>
+          </div>
         </div>
 
         <motion.button
@@ -95,11 +116,13 @@ export function LoginPage() {
       </p>
 
       {/* Demo credentials */}
-      <div className="p-4 rounded-xl bg-secondary border border-border">
-        <p className="text-xs text-muted-foreground mb-2 font-medium">Demo Credentials</p>
-        <p className="text-xs text-muted-foreground">Email: <span className="text-foreground">student@iitm.ac.in</span></p>
-        <p className="text-xs text-muted-foreground">Password: <span className="text-foreground">Admin123</span></p>
-      </div>
+      {import.meta.env.DEV && (
+        <div className="p-4 rounded-xl bg-secondary border border-border">
+          <p className="text-xs text-muted-foreground mb-2 font-medium">Demo Credentials</p>
+          <p className="text-xs text-muted-foreground">Email: <span className="text-foreground">student@iitm.ac.in</span></p>
+          <p className="text-xs text-muted-foreground">Password: <span className="text-foreground">Admin123</span></p>
+        </div>
+      )}
     </div>
   );
 }

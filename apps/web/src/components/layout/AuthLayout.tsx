@@ -1,12 +1,13 @@
-import { Outlet, Link, Navigate } from 'react-router-dom';
+import { Outlet, Link, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/auth-store';
 
 export function AuthLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) return null;
-  if (isAuthenticated) return <Navigate to="/feed" replace />;
+  if (isAuthenticated && location.pathname !== '/verify-email') return <Navigate to="/feed" replace />;
 
   return (
     <div className="min-h-screen flex">

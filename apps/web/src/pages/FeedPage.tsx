@@ -6,13 +6,29 @@ import { PostCard } from '../components/feed/PostCard';
 import { PostComposer } from '../components/feed/PostComposer';
 import { FEED_SORT_OPTIONS } from '@lastbench/shared';
 import { cn } from '../lib/utils';
-import { Flame, Sparkles, Trophy, Loader2 } from 'lucide-react';
+import { Flame, Sparkles, Trophy, Loader2, Mail } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuthStore } from '../stores/auth-store';
 import { Post } from '../types';
 
 const sortIcons = { hot: Flame, new: Sparkles, top: Trophy };
 
 export function FeedPage() {
   const [sort, setSort] = useState<'hot' | 'new' | 'top'>('hot');
+  const { user } = useAuthStore();
+  const [isResending, setIsResending] = useState(false);
+
+  const handleResend = async () => {
+    setIsResending(true);
+    try {
+      await api.resendVerification();
+      toast.success('Verification email resent!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to resend');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['feed', sort],
@@ -26,6 +42,23 @@ export function FeedPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20 md:pb-6">
+      {/* Verification Banner */}
+      {user && user.emailVerified === false && (
+        <div className="rounded-xl bg-secondary border border-border p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-muted-foreground text-sm flex items-center gap-2">
+            <Mail size={16} />
+            Please verify your student email to access all features.
+          </p>
+          <button 
+            onClick={handleResend} 
+            disabled={isResending}
+            className="text-sm font-medium text-primary hover:underline whitespace-nowrap cursor-pointer disabled:opacity-50"
+          >
+            {isResending ? 'Resending...' : 'Resend verification email'}
+          </button>
+        </div>
+      )}
+
       {/* Composer */}
       <PostComposer />
 

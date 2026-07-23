@@ -17,12 +17,11 @@ declare global {
 export function requireAuth() {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const rawToken = req.cookies?.session as string | undefined;
+      if (!rawToken) {
         throw new AppError(401, 'Authentication required');
       }
 
-      const rawToken = authHeader.slice(7);
       const tokenHash = hashToken(rawToken); // C-1: hash before lookup
 
       const session = await prisma.session.findUnique({
@@ -55,9 +54,8 @@ export function requireAuth() {
 export function optionalAuth() {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (authHeader?.startsWith('Bearer ')) {
-        const rawToken = authHeader.slice(7);
+      const rawToken = req.cookies?.session as string | undefined;
+      if (rawToken) {
         const tokenHash = hashToken(rawToken); // C-1: hash before lookup
 
         const session = await prisma.session.findUnique({

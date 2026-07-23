@@ -52,9 +52,9 @@ export function LandingPage() {
               <Zap size={14} /> The digital backbench of your campus
             </span>
             <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]">
-              <span className="text-foreground">Your campus.</span>
+              <span className="text-foreground">Welcome to LastBench.</span>
               <br />
-              <span className="gradient-text">Unfiltered.</span>
+              <span className="gradient-text">The campus social network.</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mt-6 leading-relaxed">
               The unfiltered social platform for sharing real campus gossip, posting unhinged polls, hosting heated hostel debates, and anonymous placement rants.
@@ -167,12 +167,16 @@ export function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-8 px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
               <span className="text-white font-bold text-xs">L</span>
             </div>
             <span className="text-sm font-semibold text-foreground">LastBench</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
           </div>
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} LastBench. Built for campuses.

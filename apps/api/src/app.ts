@@ -17,6 +17,8 @@ import { uploadRoutes } from './modules/upload/upload.route.js';
 import { prisma } from './lib/prisma.js';
 import { redis } from './lib/redis.js';
 import { logger } from './lib/logger.js';
+import passport from 'passport';
+import './modules/auth/google.strategy.js'; // registers the strategy as a side-effect
 
 export function createApp(): Express {
   const app = express();
@@ -42,6 +44,8 @@ export function createApp(): Express {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+  // Passport: initialize only — no session middleware (we use our own cookie-based sessions)
+  app.use(passport.initialize());
   app.use(rateLimiter());
 
   // ─── Static uploads ────────────────────────────
