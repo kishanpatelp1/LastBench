@@ -1,18 +1,22 @@
 FROM node:22-alpine AS base
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
+FROM base AS deps
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+RUN pnpm install --frozen-lockfile
+
 FROM base AS builder
 WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY . .
-RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @lastbench/api exec prisma generate
 RUN pnpm --filter @lastbench/api build
-RUN pnpm --filter @lastbench/api deploy --prod /app/pruned
-# pnpm deploy --prod copies @prisma/client but NOT the generated query engine.
-# Copy the generated .prisma directory from the full build into the pruned deployment.
-RUN DEST=$(find /app/pruned/node_modules -path '*/@prisma+client@*/node_modules' -type d | head -1) && \
-    SRC=$(find /app/node_modules -path '*/@prisma+client@*/node_modules/.prisma' -type d | head -1) && \
-    cp -r "$SRC" "$DEST/"
 
 FROM base AS runner
 WORKDIR /app
@@ -21,10 +25,19 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 --ingroup nodejs lastbench
 
-COPY --from=builder --chown=lastbench:nodejs /app/pruned ./
-RUN mkdir -p ./uploads && chown lastbench:nodejs ./uploads
+# Copy node_modules maintaining exact monorepo structure for pnpm symlinks to work
+COPY --from=builder --chown=lastbench:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=lastbench:nodejs /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder --chown=lastbench:nodejs /app/packages/shared/node_modules ./packages/shared/node_modules
+
+# Copy built code maintaining exact monorepo structure
+COPY --from=builder --chown=lastbench:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=lastbench:nodejs /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder --chown=lastbench:nodejs /app/apps/api/prisma ./apps/api/prisma
+
+RUN mkdir -p ./apps/api/uploads && chown lastbench:nodejs ./apps/api/uploads
 
 USER lastbench
-
 EXPOSE 3001
+WORKDIR /app/apps/api
 CMD ["node", "dist/index.js"]
