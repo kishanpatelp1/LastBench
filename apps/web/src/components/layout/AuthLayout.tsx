@@ -33,7 +33,7 @@ export function AuthLayout() {
             <p className="text-violet-200/80 text-lg mt-3 max-w-sm mx-auto">Your campus. Unfiltered.</p>
           </div>
           <div className="flex flex-wrap justify-center gap-3 text-sm">
-            {['Anonymous Posts', 'Communities', 'Polls', 'Realtime', 'Dark Mode'].map((tag) => (
+            {['Anonymous Posts', 'Groups', 'Polls', 'Realtime', 'Dark Mode'].map((tag) => (
               <span key={tag} className="px-4 py-2 rounded-full bg-white/10 text-violet-200 backdrop-blur-sm border border-white/10">
                 {tag}
               </span>

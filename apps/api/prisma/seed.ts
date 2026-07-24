@@ -36,7 +36,6 @@ async function seed() {
       username: 'student_alpha',
       displayName: 'Campus Explorer',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
-      college: 'State University',
       branch: 'CSE',
       year: 3,
       emailVerified: true,
@@ -49,7 +48,6 @@ async function seed() {
       username: 'kovai_coder',
       displayName: 'Kovai Coder',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
-      college: 'State University',
       branch: 'ECE',
       year: 2,
       emailVerified: true,
@@ -62,7 +60,6 @@ async function seed() {
       username: 'csk_veriyan',
       displayName: 'CSK Veriyan',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
-      college: 'State University',
       branch: 'Mech',
       year: 4,
       emailVerified: true,
@@ -75,32 +72,49 @@ async function seed() {
       username: 'namma_campus',
       displayName: 'Namma Campus',
       passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
-      college: 'State University',
       branch: 'IT',
       year: 3,
       emailVerified: true,
     },
   });
 
-  // Create Generic, Multi-Campus Communities
+  // Create Generic Groups
   const communities = await Promise.all([
     prisma.community.create({
-      data: { name: 'General', slug: 'general', description: 'Open forum for all campus discussions', category: 'general', isDefault: true },
+      data: { name: 'General', slug: 'general', description: 'Open forum for all discussions', category: 'general', isDefault: true },
     }),
     prisma.community.create({
-      data: { name: 'Placements & Careers', slug: 'placements-careers', description: 'Placement discussions, coding rounds, and interview updates', college: 'State University', category: 'placement' },
+      data: { name: 'Programming', slug: 'programming', description: 'Coding projects, hackathons, and software development', category: 'academic', isDefault: true },
     }),
     prisma.community.create({
-      data: { name: 'Campus Memes', slug: 'campus-memes', description: 'Unhinged department roasts, classroom memes, and daily struggles', college: 'State University', category: 'memes' },
+      data: { name: 'Academics', slug: 'academics', description: 'Study materials, exams, and coursework', category: 'academic', isDefault: true },
     }),
     prisma.community.create({
-      data: { name: 'Campus Confessions', slug: 'campus-confessions', description: 'Anonymous confessions and classroom crushes from students', category: 'general', isDefault: true },
+      data: { name: 'Placements', slug: 'placements', description: 'Placement discussions, coding rounds, and interview updates', category: 'placement', isDefault: true },
     }),
     prisma.community.create({
-      data: { name: 'Tech Talk', slug: 'tech-talk', description: 'Coding projects, symposium preparation, and hackathons', category: 'academic', isDefault: true },
+      data: { name: 'Projects', slug: 'projects', description: 'Find teammates and collaborate on projects', category: 'academic', isDefault: true },
     }),
     prisma.community.create({
-      data: { name: 'Hostel Life', slug: 'hostel-life', description: 'Warden stories, room shenanigans, and Wednesday mess menu reviews', category: 'hostel', isDefault: true },
+      data: { name: 'Memes', slug: 'memes', description: 'Unhinged department roasts and daily struggles', category: 'memes', isDefault: true },
+    }),
+    prisma.community.create({
+      data: { name: 'Events', slug: 'events', description: 'Symposiums, cultural fests, and campus events', category: 'events', isDefault: true },
+    }),
+    prisma.community.create({
+      data: { name: 'Sports', slug: 'sports', description: 'Intramurals, tournaments, and sports talk', category: 'sports', isDefault: true },
+    }),
+    prisma.community.create({
+      data: { name: 'Hostel', slug: 'hostel', description: 'Warden stories, room shenanigans, and mess food', category: 'hostel', isDefault: true },
+    }),
+    prisma.community.create({
+      data: { name: 'Buy & Sell', slug: 'buy-and-sell', description: 'Buy or sell books, lab coats, and electronics', category: 'market', isDefault: true },
+    }),
+    prisma.community.create({
+      data: { name: 'Lost & Found', slug: 'lost-and-found', description: 'Post items you have lost or found on campus', category: 'market', isDefault: true },
+    }),
+    prisma.community.create({
+      data: { name: 'Confessions', slug: 'confessions', description: 'Anonymous confessions and campus tea', category: 'general', isDefault: true },
     }),
   ]);
 
@@ -135,7 +149,7 @@ async function seed() {
     },
     {
       authorId: user1.id,
-      communityId: communities[1]!.id,
+      communityId: communities[3]!.id,
       title: 'Product Company Placement Prep 💻',
       content: "A top tech company is visiting campus next week for the Associate Software Engineer role. Anyone has previous round coding questions? I heard the second round focuses heavily on DSA and C/Java concepts. Please share your experiences if you attended last year's drives!",
       isAnonymous: true,
@@ -144,7 +158,7 @@ async function seed() {
     },
     {
       authorId: user4.id,
-      communityId: communities[5]!.id,
+      communityId: communities[8]!.id,
       title: 'The Wednesday Biryani Tragedy 😭🍗',
       content: "The Wednesday chicken biryani in the boys hostel is literally just yellow-colored tomato rice with a single piece of potato. Can we write a mass petition to the warden? This is unfair for the mess fees we pay. Who is ready to sign?",
       isAnonymous: true,
@@ -153,7 +167,7 @@ async function seed() {
     },
     {
       authorId: user3.id,
-      communityId: communities[2]!.id,
+      communityId: communities[5]!.id,
       title: 'Mech drawing boards are cheat codes 💀',
       content: "When the professor says 'this is a strict college' but the Mech department guys are busy playing BGMI behind the big drawing boards during engineering graphics class 💀",
       isAnonymous: true,
@@ -171,7 +185,7 @@ async function seed() {
     },
     {
       authorId: user1.id,
-      communityId: communities[4]!.id,
+      communityId: communities[1]!.id,
       title: 'Built a local bus tracker for day-scholars! 🚀',
       content: "I got tired of missing the local town buses, so I built a real-time crowd-sourced bus tracking app for day-scholars using React Native and Node.js. Check out the screenshot of the dashboard coding layout!",
       isAnonymous: false,
@@ -259,7 +273,7 @@ async function seed() {
   await prisma.post.create({
     data: {
       authorId: user2.id,
-      communityId: communities[5]!.id,
+      communityId: communities[8]!.id,
       title: 'Best hangout spot near campus after class? ☕🏍️',
       content: 'Where do we go when the final bell rings?',
       type: 'POLL',
@@ -285,7 +299,7 @@ async function seed() {
   await prisma.post.create({
     data: {
       authorId: user1.id,
-      communityId: communities[1]!.id,
+      communityId: communities[3]!.id,
       title: 'Which company is your dream target this placement season? 💼',
       content: "Let's see the placement targets of pre-final and final years.",
       type: 'POLL',
@@ -309,7 +323,7 @@ async function seed() {
 
   console.log('✅ Seed complete!');
   console.log(`   ${(await prisma.user.count())} users`);
-  console.log(`   ${(await prisma.community.count())} communities`);
+  console.log(`   ${(await prisma.community.count())} groups`);
   console.log(`   ${(await prisma.post.count())} posts`);
 }
 

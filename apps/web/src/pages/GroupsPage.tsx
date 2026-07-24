@@ -6,7 +6,7 @@ import { Users, MessageSquare, ArrowRight } from 'lucide-react';
 import { formatNumber } from '../lib/utils';
 import { Community } from '../types';
 
-export function CommunitiesPage() {
+export function GroupsPage() {
   const { data: communities, isLoading } = useQuery<Community[]>({
     queryKey: ['communities'],
     queryFn: () => api.getCommunities() as unknown as Promise<Community[]>,
@@ -26,8 +26,8 @@ export function CommunitiesPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 md:pb-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Communities</h1>
-        <p className="text-muted-foreground mt-1">Join communities across campuses</p>
+        <h1 className="text-3xl font-bold text-foreground">Groups</h1>
+        <p className="text-muted-foreground mt-1">Explore campus groups and discussions</p>
       </div>
 
       {isLoading ? (
@@ -53,7 +53,7 @@ export function CommunitiesPage() {
                 transition={{ delay: i * 0.05 }}
               >
                 <Link
-                  to={`/c/${community.slug}`}
+                  to={`/g/${community.slug}`}
                   className="block group rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300 overflow-hidden"
                 >
                   {/* Banner gradient */}
@@ -68,9 +68,6 @@ export function CommunitiesPage() {
                         <h3 className="font-bold text-foreground group-hover:text-primary transition-colors truncate">
                           {community.name}
                         </h3>
-                        {community.college && (
-                          <p className="text-xs text-muted-foreground">{community.college}</p>
-                        )}
                       </div>
                       <ArrowRight size={16} className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all mt-1" />
                     </div>

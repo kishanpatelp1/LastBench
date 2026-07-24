@@ -41,7 +41,6 @@ export const authService = {
         username: input.username,
         displayName: input.displayName ?? input.username,
         passwordHash,
-        college: input.college,
         branch: input.branch,
         year: input.year,
         // Cast entire data object — new fields exist in schema but Prisma client
@@ -51,7 +50,7 @@ export const authService = {
       } as never,
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
-        avatarUrl: true, college: true, branch: true, year: true, bio: true,
+        avatarUrl: true, branch: true, year: true, bio: true,
         emailVerified: true, createdAt: true,
       },
     });
@@ -87,7 +86,7 @@ export const authService = {
       where: { email: input.email },
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
-        avatarUrl: true, college: true, branch: true, year: true, bio: true,
+        avatarUrl: true, branch: true, year: true, bio: true,
         emailVerified: true, passwordHash: true, isBanned: true, createdAt: true,
       },
     });
@@ -117,7 +116,7 @@ export const authService = {
       where: { id: userId },
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
-        avatarUrl: true, college: true, branch: true, year: true, bio: true,
+        avatarUrl: true, branch: true, year: true, bio: true,
         emailVerified: true, createdAt: true,
         _count: { select: { posts: true, comments: true } },
       },
@@ -132,7 +131,6 @@ export const authService = {
     const safeData: UpdateProfileInput = {};
     if (data.displayName !== undefined) safeData.displayName = data.displayName;
     if (data.bio !== undefined) safeData.bio = data.bio;
-    if (data.college !== undefined) safeData.college = data.college;
     if (data.branch !== undefined) safeData.branch = data.branch;
     if (data.year !== undefined) safeData.year = data.year;
     if (data.avatarUrl !== undefined) safeData.avatarUrl = data.avatarUrl;
@@ -142,7 +140,7 @@ export const authService = {
       data: safeData,
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
-        avatarUrl: true, college: true, branch: true, year: true, bio: true,
+        avatarUrl: true, branch: true, year: true, bio: true,
         emailVerified: true, createdAt: true,
       },
     });
@@ -254,7 +252,7 @@ export const authService = {
         user: {
           select: {
             id: true, email: true, username: true, displayName: true, role: true,
-            avatarUrl: true, college: true, branch: true, year: true, bio: true,
+            avatarUrl: true, branch: true, year: true, bio: true,
             emailVerified: true, createdAt: true,
           },
         },
@@ -267,7 +265,7 @@ export const authService = {
       where: { email },
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
-        avatarUrl: true, college: true, branch: true, year: true, bio: true,
+        avatarUrl: true, branch: true, year: true, bio: true,
         emailVerified: true, createdAt: true,
       },
     });
@@ -312,7 +310,7 @@ export const authService = {
       } as never,
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
-        avatarUrl: true, college: true, branch: true, year: true, bio: true,
+        avatarUrl: true, branch: true, year: true, bio: true,
         emailVerified: true, createdAt: true,
       },
     });
@@ -326,6 +324,6 @@ export const authService = {
       });
     }
 
-    return newUser;
+    return { ...newUser, isNewUser: true };
   },
 };

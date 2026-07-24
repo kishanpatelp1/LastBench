@@ -157,10 +157,15 @@ authRoutes.get(
   }),
   async (req, res) => {
     try {
-      const user = req.user as { id: string };
+      const user = req.user as { id: string; isNewUser?: boolean };
       const rawToken = await authService.createSession(user.id);
       setOAuthSessionCookie(res, rawToken);
-      res.redirect(`${env.FRONTEND_URL}/feed?oauth=success`);
+      
+      if (user.isNewUser) {
+        res.redirect(`${env.FRONTEND_URL}/onboarding?oauth=success&new=true`);
+      } else {
+        res.redirect(`${env.FRONTEND_URL}/feed?oauth=success`);
+      }
     } catch {
       res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
     }

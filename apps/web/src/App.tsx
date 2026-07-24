@@ -10,14 +10,15 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { FeedPage } from './pages/FeedPage';
 import { PostDetailPage } from './pages/PostDetailPage';
-import { CommunitiesPage } from './pages/CommunitiesPage';
-import { CommunityPage } from './pages/CommunityPage';
+import { GroupsPage } from './pages/GroupsPage';
+import { GroupPage } from './pages/GroupPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SearchPage } from './pages/SearchPage';
 import { LandingPage } from './pages/LandingPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
+import { OnboardingPage } from './pages/OnboardingPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -51,8 +52,8 @@ export function App() {
       <Route element={<MainLayout />}>
         <Route path="/feed" element={<FeedPage />} />
         <Route path="/post/:id" element={<PostDetailPage />} />
-        <Route path="/communities" element={<CommunitiesPage />} />
-        <Route path="/c/:slug" element={<CommunityPage />} />
+        <Route path="/groups" element={<GroupsPage />} />
+        <Route path="/g/:slug" element={<GroupPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
@@ -63,6 +64,8 @@ export function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
+
+      <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

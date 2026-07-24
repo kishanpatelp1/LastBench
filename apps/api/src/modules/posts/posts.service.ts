@@ -57,11 +57,11 @@ export const postService = {
   },
 
   async getFeed(query: FeedQuery, userId?: string) {
-    const { cursor, limit, sort, timeRange, communityId, college } = query;
+    const { cursor, limit, sort, timeRange, communityId } = query;
 
     // M-8: Cache-aside — only cache anonymous, first-page, default-sort feeds
     const cacheKey = !userId && !cursor
-      ? `feed:${sort}:${timeRange}:${communityId ?? 'all'}:${college ?? 'all'}:${limit}`
+      ? `feed:${sort}:${timeRange}:${communityId ?? 'all'}:${limit}`
       : null;
 
     if (cacheKey) {
@@ -72,7 +72,6 @@ export const postService = {
     // Build where clause
     const where: Record<string, unknown> = { isDeleted: false };
     if (communityId) where.communityId = communityId;
-    if (college) where.community = { college };
 
     if (timeRange !== 'all') {
       const now = new Date();

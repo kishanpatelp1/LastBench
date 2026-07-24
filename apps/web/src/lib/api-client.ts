@@ -135,9 +135,8 @@ class ApiClient {
   }
 
   // Communities
-  async getCommunities(college?: string) {
-    const search = college ? `?college=${encodeURIComponent(college)}` : '';
-    return this.request<Record<string, unknown>[]>(`/communities${search}`);
+  async getCommunities() {
+    return this.request<Record<string, unknown>[]>('/communities');
   }
 
   async getCommunity(slug: string) {

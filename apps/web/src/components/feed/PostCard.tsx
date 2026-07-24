@@ -124,7 +124,7 @@ export function PostCard({ post }: PostCardProps) {
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Link to={`/c/${community.slug}`} className="hover:text-primary transition-colors font-medium">
+                <Link to={`/g/${community.slug}`} className="hover:text-primary transition-colors font-medium">
                   {community.name}
                 </Link>
                 <span>•</span>

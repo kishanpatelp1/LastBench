@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Eye, EyeOff, X, BarChart3, Plus, Trash2, Image as ImageIcon, Loader } from 'lucide-react';
 import { api } from '../../lib/api-client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/auth-store';
 import { toast } from 'sonner';
+import { Community } from '../../types';
 
 interface ConfettiParticle {
   id: number;
@@ -34,6 +35,11 @@ export function PostComposer() {
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const [selectedImages, setSelectedImages] = useState<Array<{ url: string; file: File }>>([]);
   const [confettiParticles, setConfettiParticles] = useState<ConfettiParticle[]>([]);
+
+  const { data: groups } = useQuery({
+    queryKey: ['groups'],
+    queryFn: () => api.getCommunities() as unknown as Promise<Community[]>,
+  });
 
   const triggerConfetti = () => {
     const colors = ['#8B5CF6', '#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
@@ -116,7 +122,7 @@ export function PostComposer() {
 
   const handleSubmit = async () => {
     if (!content.trim() || !communityId) {
-      toast.error('Please fill in content and select a community');
+      toast.error('Please fill in content and select a group');
       return;
     }
 
@@ -410,12 +416,18 @@ export function PostComposer() {
               </div>
             )}
 
-            <input
+            <select
               value={communityId}
               onChange={(e) => setCommunityId(e.target.value)}
-              placeholder="Community ID (paste from /communities page)"
-              className="w-full px-4 py-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-            />
+              className="w-full px-4 py-2.5 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm appearance-none"
+            >
+              <option value="" disabled>Select a group...</option>
+              {groups?.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

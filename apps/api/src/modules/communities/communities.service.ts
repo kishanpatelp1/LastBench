@@ -12,16 +12,13 @@ export const communityService = {
         name: input.name,
         slug: input.slug,
         description: input.description,
-        college: input.college,
         category: input.category,
       },
     });
   },
 
-  async getAll(college?: string) {
-    const where = college ? { college } : {};
+  async getAll() {
     const communities = await prisma.community.findMany({
-      where,
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { members: true, posts: true } } },
     });

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { api } from '../lib/api-client';
 import { toast } from 'sonner';
+import { EditProfileModal } from '../components/profile/EditProfileModal';
 
 export function ProfilePage() {
   const { user, logout, setUser } = useAuthStore();
@@ -12,6 +13,7 @@ export function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (!user) return null;
 
@@ -103,9 +105,14 @@ export function ProfilePage() {
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <Mail size={16} /><span>{user.email}</span>
             </div>
-            {user.college && (
+            {(user.branch || user.year) && (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <GraduationCap size={16} /><span>{user.college} {user.branch ? `• ${user.branch}` : ''} {user.year ? `• Year ${user.year}` : ''}</span>
+                <GraduationCap size={16} />
+                <span>
+                  {user.branch ? user.branch : ''}
+                  {user.branch && user.year ? ' • ' : ''}
+                  {user.year ? `Year ${user.year}` : ''}
+                </span>
               </div>
             )}
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -114,7 +121,10 @@ export function ProfilePage() {
           </div>
 
           <div className="flex gap-3 mt-6">
-            <button className="flex-1 py-2.5 rounded-xl bg-secondary border border-border text-foreground font-medium flex items-center justify-center gap-2 text-sm hover:bg-muted transition-all cursor-pointer">
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="flex-1 py-2.5 rounded-xl bg-secondary border border-border text-foreground font-medium flex items-center justify-center gap-2 text-sm hover:bg-muted transition-all cursor-pointer"
+            >
               <Settings size={16} />Edit Profile
             </button>
             <button
@@ -126,6 +136,7 @@ export function ProfilePage() {
           </div>
         </div>
       </motion.div>
+      <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} />
     </div>
   );
 }

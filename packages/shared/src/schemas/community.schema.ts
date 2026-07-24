@@ -12,8 +12,7 @@ export const createCommunitySchema = z.object({
     .max(50)
     .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
   description: z.string().max(500).optional(),
-  college: z.string().max(100).optional(),
-  category: z.enum(['general', 'academic', 'hostel', 'placement', 'memes', 'events', 'sports', 'clubs']).optional(),
+  category: z.enum(['general', 'academic', 'hostel', 'placement', 'memes', 'events', 'sports', 'clubs', 'market']).optional(),
 });
 
 // ─── Update Community ────────────────────────────────
@@ -34,9 +33,9 @@ export const searchQuerySchema = z.object({
 
 // ─── Report ──────────────────────────────────────────
 export const createReportSchema = z.object({
-  postId: z.string().cuid().optional(),
-  commentId: z.string().cuid().optional(),
-  userId: z.string().cuid().optional(),
+  postId: z.string().min(1).optional(),
+  commentId: z.string().min(1).optional(),
+  userId: z.string().min(1).optional(),
   reason: z.enum([
     'spam',
     'harassment',

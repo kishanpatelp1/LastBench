@@ -51,7 +51,6 @@ model User {
   passwordHash  String?
   emailVerified Boolean  @default(false)
   role          Role     @default(STUDENT)
-  college       String?
   branch        String?
   year          Int?
   bio           String?
@@ -80,7 +79,6 @@ model User {
 
   @@index([email])
   @@index([username])
-  @@index([college])
 }
 
 model Session {
@@ -119,7 +117,6 @@ model Community {
   avatarUrl   String?
   bannerUrl   String?
   isDefault   Boolean  @default(false)
-  college     String?
   category    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -129,7 +126,6 @@ model Community {
   rules   CommunityRule[]
 
   @@index([slug])
-  @@index([college])
 }
 
 model CommunityMember {

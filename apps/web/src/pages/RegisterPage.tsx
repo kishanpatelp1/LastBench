@@ -91,14 +91,7 @@ export function RegisterPage() {
           {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">College</label>
-            <div className="relative">
-              <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input {...register('college')} disabled={isSubmitting} placeholder="IIT Madras" className={inputClass} />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Branch</label>
             <div className="relative">

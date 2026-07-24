@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const createPostSchema = z.object({
   title: z.string().max(300).optional(),
   content: z.string().min(1, 'Post content is required').max(10000),
-  communityId: z.string().cuid(),
+  communityId: z.string().min(1),
   isAnonymous: z.boolean().default(true),
   type: z.enum(['TEXT', 'IMAGE', 'POLL', 'LINK']).default('TEXT'),
   mediaUrls: z.array(z.string().url()).max(4).optional(),
@@ -34,7 +34,6 @@ export const feedQuerySchema = z.object({
   sort: z.enum(['hot', 'new', 'top']).default('hot'),
   timeRange: z.enum(['day', 'week', 'month', 'year', 'all']).default('week'),
   communityId: z.string().optional(),
-  college: z.string().optional(),
 });
 
 // ─── Vote ────────────────────────────────────────────
@@ -44,7 +43,7 @@ export const voteSchema = z.object({
 
 // ─── Poll Vote ───────────────────────────────────────
 export const pollVoteSchema = z.object({
-  optionId: z.string().cuid(),
+  optionId: z.string().min(1),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;

@@ -2,7 +2,6 @@ export interface User {
   id: string;
   username: string;
   displayName?: string | null;
-  college?: string | null;
   branch?: string | null;
   year?: number | null;
   email?: string;
@@ -19,8 +18,8 @@ export interface Community {
   name: string;
   slug: string;
   description?: string | null;
-  college?: string | null;
   category?: string | null;
+  isMember?: boolean;
   memberCount: number;
   postCount: number;
   createdAt: string;

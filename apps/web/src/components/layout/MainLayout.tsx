@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Search, Bell, User, LogOut, Sun, Moon, Compass, Menu, X } from 'lucide-react';
+import { Home, Search, Bell, User, LogOut, Sun, Moon, Compass, Menu, X, Users } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth-store';
 import { useThemeStore } from '../../stores/theme-store';
 import { cn } from '../../lib/utils';
@@ -15,7 +15,7 @@ export function MainLayout() {
 
   const publicNavItems = [
     { path: '/feed', label: 'Feed', icon: Home },
-    { path: '/communities', label: 'Communities', icon: Compass },
+    { path: '/groups', label: 'Groups', icon: Users },
     { path: '/search', label: 'Search', icon: Search },
   ];
 
@@ -91,7 +91,7 @@ export function MainLayout() {
               <div className="hidden md:flex items-center gap-3 pl-3 border-l border-border">
                 <div className="text-right">
                   <p className="text-sm font-semibold text-foreground">{user?.displayName ?? user?.username}</p>
-                  <p className="text-xs text-muted-foreground">{user?.college ?? 'Student'}</p>
+                  <p className="text-xs text-muted-foreground">{user?.branch ?? 'Student'}</p>
                 </div>
                 <button
                   onClick={handleLogout}

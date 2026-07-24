@@ -14,7 +14,6 @@ export const registerSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
   displayName: z.string().min(1).max(50).optional(),
-  college: z.string().min(1).max(100).optional(),
   branch: z.string().max(50).optional(),
   year: z.number().int().min(1).max(6).optional(),
 });
@@ -44,7 +43,6 @@ export const resetPasswordSchema = z.object({
 export const updateProfileSchema = z.object({
   displayName: z.string().min(1).max(50).optional(),
   bio: z.string().max(500).optional(),
-  college: z.string().max(100).optional(),
   branch: z.string().max(50).optional(),
   year: z.number().int().min(1).max(6).optional(),
   avatarUrl: z.string().url().optional(),

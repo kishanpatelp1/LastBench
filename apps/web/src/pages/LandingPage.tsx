@@ -5,7 +5,7 @@ import { ArrowRight, Shield, Zap, Users, MessageSquare, BarChart3, Eye } from 'l
 
 const features = [
   { icon: Eye, title: 'Anonymous by Default', desc: 'Post freely without revealing your identity. Toggle public when you want.' },
-  { icon: Users, title: 'Campus Communities', desc: 'Join communities across colleges — placements, memes, hostel life, and more.' },
+  { icon: Users, title: 'Campus Groups', desc: 'Join groups across campus — placements, memes, hostel life, and more.' },
   { icon: Zap, title: 'Realtime Everything', desc: 'Live comments, instant notifications, and typing indicators.' },
   { icon: MessageSquare, title: 'Threaded Discussions', desc: 'Nested replies, upvotes, and polls for meaningful conversations.' },
   { icon: BarChart3, title: 'Polls & Voting', desc: 'Create polls, upvote posts, and see trending content across campuses.' },
@@ -97,7 +97,7 @@ export function LandingPage() {
           >
             {[
               { value: '10K+', label: 'Backbenchers' },
-              { value: '50+', label: 'Communities' },
+              { value: '50+', label: 'Groups' },
               { value: '100K+', label: 'Confessions' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">

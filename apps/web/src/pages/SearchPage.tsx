@@ -30,7 +30,7 @@ export function SearchPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search posts, communities..."
+          placeholder="Search posts, groups..."
           className="w-full pl-12 pr-4 py-4 rounded-2xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-lg transition-all"
         />
       </form>
@@ -45,10 +45,10 @@ export function SearchPage() {
         <div className="space-y-6">
           {communities.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Communities</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Groups</h2>
               <div className="space-y-2">
                 {communities.map((c) => (
-                  <Link key={c.id} to={`/c/${c.slug}`} className="block p-4 rounded-xl bg-card border border-border hover:border-primary/30 transition-all">
+                  <Link key={c.id} to={`/g/${c.slug}`} className="block p-4 rounded-xl bg-card border border-border hover:border-primary/30 transition-all">
                     <p className="font-semibold text-foreground">{c.name}</p>
                     {c.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{c.description}</p>}
                   </Link>
@@ -80,7 +80,7 @@ export function SearchPage() {
       {!searched && (
         <div className="text-center py-20">
           <Search size={48} className="text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground">Search for posts and communities</p>
+          <p className="text-muted-foreground">Search for posts and groups</p>
         </div>
       )}
     </div>

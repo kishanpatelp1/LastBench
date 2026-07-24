@@ -2,21 +2,20 @@ import { Router } from 'express';
 import { createCommunitySchema } from '@lastbench/shared';
 import { communityService } from './communities.service.js';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth, requireRole } from '../../middleware/auth.middleware.js';
+import { optionalAuth, requireAuth, requireRole } from '../../middleware/auth.middleware.js';
 
 export const communityRoutes: Router = Router();
 
 communityRoutes.get('/', async (req, res, next) => {
   try {
-    const college = req.query.college as string | undefined;
-    const communities = await communityService.getAll(college);
+    const communities = await communityService.getAll();
     res.json({ success: true, data: communities });
   } catch (err) { next(err); }
 });
 
-communityRoutes.get('/:slug', async (req, res, next) => {
+communityRoutes.get('/:slug', optionalAuth(), async (req, res, next) => {
   try {
-    const community = await communityService.getBySlug(String(req.params.slug));
+    const community = await communityService.getBySlug(String(req.params.slug), req.userId);
     res.json({ success: true, data: community });
   } catch (err) { next(err); }
 });
