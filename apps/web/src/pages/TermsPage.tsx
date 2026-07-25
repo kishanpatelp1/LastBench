@@ -1,6 +1,6 @@
 export function TermsPage() {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 space-y-8">
+    <div className="max-w-3xl mx-auto px-4 pt-8 pb-24 md:py-12 space-y-8">
       <h1 className="text-3xl font-bold text-foreground">Terms of Service</h1>
       <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
 

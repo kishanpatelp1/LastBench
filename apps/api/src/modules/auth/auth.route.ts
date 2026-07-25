@@ -19,42 +19,27 @@ export const authRoutes: Router = Router();
 const SESSION_COOKIE = 'session';
 const SESSION_TTL_DAYS = 30;
 
-function setSessionCookie(res: Response, rawToken: string) {
-  res.cookie(SESSION_COOKIE, rawToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: SESSION_TTL_DAYS * 24 * 60 * 60 * 1000,
-    path: '/',
-  });
-}
-
-/**
- * OAuth callback cookie — uses sameSite: 'none' in production.
- *
- * The Google redirect goes directly from Google to the GOOGLE_CALLBACK_URL
- * and then we redirect to FRONTEND_URL. In production the GOOGLE_CALLBACK_URL
- * MUST be the Vercel domain (e.g. https://<app>.vercel.app/api/auth/google/callback)
- * so Vercel proxies the request to Render. That way this Set-Cookie header is
- * seen by the browser as coming from the Vercel domain — same domain as the
- * frontend — and the cookie is stored and sent correctly on all future requests.
- *
- * sameSite: 'none' + secure: true is belt-and-suspenders for any edge case
- * where the redirect chain passes through different origins.
- */
-function setOAuthSessionCookie(res: Response, rawToken: string) {
+function getCookieOptions(maxAge?: number) {
   const isProd = process.env.NODE_ENV === 'production';
-  res.cookie(SESSION_COOKIE, rawToken, {
+  return {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
-    maxAge: SESSION_TTL_DAYS * 24 * 60 * 60 * 1000,
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     path: '/',
-  });
+    ...(maxAge !== undefined ? { maxAge } : {}),
+  };
+}
+
+function setSessionCookie(res: Response, rawToken: string) {
+  res.cookie(SESSION_COOKIE, rawToken, getCookieOptions(SESSION_TTL_DAYS * 24 * 60 * 60 * 1000));
+}
+
+function setOAuthSessionCookie(res: Response, rawToken: string) {
+  setSessionCookie(res, rawToken);
 }
 
 function clearSessionCookie(res: Response) {
-  res.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: 'lax', path: '/' });
+  res.clearCookie(SESSION_COOKIE, getCookieOptions());
 }
 
 // POST /api/auth/register

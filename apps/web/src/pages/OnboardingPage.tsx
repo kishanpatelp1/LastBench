@@ -12,6 +12,7 @@ export function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
+    username: user?.username || '',
     branch: user?.branch || '',
     year: user?.year ? String(user.year) : '',
   });
@@ -26,6 +27,7 @@ export function OnboardingPage() {
 
     try {
       const dataToSubmit = {
+        username: formData.username.trim() !== user?.username ? formData.username.trim() : undefined,
         branch: formData.branch.trim() || undefined,
         year: formData.year ? parseInt(formData.year, 10) : undefined,
       };
@@ -35,6 +37,7 @@ export function OnboardingPage() {
       if (user) {
         setUser({ 
           ...user,
+          username: dataToSubmit.username ?? user.username,
           branch: dataToSubmit.branch ?? user.branch,
           year: dataToSubmit.year ?? user.year,
         });
@@ -49,10 +52,6 @@ export function OnboardingPage() {
     }
   };
 
-  const handleSkip = () => {
-    navigate('/feed');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <motion.div
@@ -62,14 +61,34 @@ export function OnboardingPage() {
       >
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-            Welcome, {user?.displayName?.split(' ')[0] || 'Student'}!
+            Welcome, {user?.displayName?.split(' ')[0] || user?.username || 'Student'}!
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Let's complete your profile so you can connect with your peers.
+            Complete your academic profile to join discussions and groups.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="username" className="text-sm font-medium flex items-center justify-between">
+              <span>Campus Handle</span>
+              <span className="text-xs font-semibold text-primary/80">Required</span>
+            </label>
+            <div className="relative flex items-center">
+              <span className="absolute left-4 text-muted-foreground font-semibold">u/</span>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="cool_student"
+                required
+                className="w-full pl-9 pr-4 py-3 bg-secondary/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary border-border transition-all font-medium"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="branch" className="text-sm font-medium">Branch / Major</label>
             <input
@@ -101,26 +120,19 @@ export function OnboardingPage() {
             </select>
           </div>
 
-          <div className="pt-4 space-y-3">
+          <div className="pt-4">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center py-3 font-medium text-white transition-all rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-50"
+              className="w-full flex items-center justify-center py-3.5 font-bold text-white transition-all rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/35 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <Loader2 size={20} className="animate-spin" />
               ) : (
                 <>
-                  Continue <ArrowRight size={18} className="ml-2" />
+                  Complete Onboarding <ArrowRight size={18} className="ml-2" />
                 </>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={handleSkip}
-              className="w-full py-3 font-medium transition-colors rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              Skip for now
             </button>
           </div>
         </form>

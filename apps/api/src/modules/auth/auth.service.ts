@@ -162,6 +162,18 @@ export const authService = {
   async updateProfile(userId: string, data: UpdateProfileInput) {
     // Explicitly pick only allowed fields to prevent privilege escalation (H-4)
     const safeData: UpdateProfileInput = {};
+    if (data.username !== undefined) {
+      const existing = await prisma.user.findFirst({
+        where: {
+          username: { equals: data.username, mode: 'insensitive' },
+          NOT: { id: userId },
+        },
+      });
+      if (existing) {
+        throw new AppError(409, 'Username already taken. Each student must have a unique campus handle.');
+      }
+      safeData.username = data.username;
+    }
     if (data.displayName !== undefined) safeData.displayName = data.displayName;
     if (data.bio !== undefined) safeData.bio = data.bio;
     if (data.branch !== undefined) safeData.branch = data.branch;

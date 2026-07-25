@@ -1,5 +1,3 @@
-version: '3.9'
-
 # L-6: Local development docker-compose.
 # Starts PostgreSQL and Redis so developers don't need to install them manually.
 #

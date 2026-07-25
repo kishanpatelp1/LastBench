@@ -15,6 +15,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
+    username: user?.username || '',
     displayName: user?.displayName || '',
     bio: user?.bio || '',
     branch: user?.branch || '',
@@ -23,7 +24,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
 
   if (!isOpen) return null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -34,6 +35,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
     try {
       // Clean up data before sending
       const dataToSubmit = {
+        username: formData.username.trim() !== user?.username ? formData.username.trim() : undefined,
         displayName: formData.displayName.trim() || undefined,
         bio: formData.bio.trim() || undefined,
         branch: formData.branch.trim() || undefined,
@@ -46,6 +48,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       if (user) {
         setUser({ 
           ...user,
+          username: dataToSubmit.username ?? user.username,
           displayName: dataToSubmit.displayName ?? user.displayName,
           bio: dataToSubmit.bio ?? user.bio,
           branch: dataToSubmit.branch ?? user.branch,
@@ -69,7 +72,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-lg p-6 overflow-hidden border shadow-xl bg-card rounded-2xl border-border"
+          className="relative w-full max-w-lg p-6 overflow-hidden border shadow-xl bg-card rounded-2xl border-border max-h-[90vh] overflow-y-auto"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Edit Profile</h2>
@@ -83,7 +86,27 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="displayName" className="text-sm font-medium">Display Name</label>
+              <label htmlFor="username" className="text-sm font-medium flex items-center justify-between">
+                <span>Campus Handle</span>
+                <span className="text-xs font-semibold text-primary/80">Required</span>
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-muted-foreground font-semibold">u/</span>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="cool_student"
+                  required
+                  className="w-full pl-8 pr-4 py-2 bg-transparent border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary border-border font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="displayName" className="text-sm font-medium">Display Name (Optional)</label>
               <input
                 id="displayName"
                 name="displayName"
@@ -108,18 +131,18 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
               />
             </div>
 
-              <div className="space-y-2 col-span-2">
-                <label htmlFor="branch" className="text-sm font-medium">Branch/Major</label>
-                <input
-                  id="branch"
-                  name="branch"
-                  type="text"
-                  value={formData.branch}
-                  onChange={handleChange}
-                  placeholder="Computer Science"
-                  className="w-full px-4 py-2 bg-transparent border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary border-border"
-                />
-              </div>
+            <div className="space-y-2">
+              <label htmlFor="branch" className="text-sm font-medium">Branch / Major</label>
+              <input
+                id="branch"
+                name="branch"
+                type="text"
+                value={formData.branch}
+                onChange={handleChange}
+                placeholder="Computer Science"
+                className="w-full px-4 py-2 bg-transparent border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary border-border"
+              />
+            </div>
 
             <div className="space-y-2">
               <label htmlFor="year" className="text-sm font-medium">Year of Study</label>
@@ -127,7 +150,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
                 id="year"
                 name="year"
                 value={formData.year}
-                onChange={handleChange as any}
+                onChange={handleChange}
                 className="w-full px-4 py-2 bg-transparent border rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-primary border-border"
               >
                 <option value="" className="bg-background">Select Year</option>
