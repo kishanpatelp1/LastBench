@@ -2,6 +2,16 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { env } from '../../config/env.js';
 import { authService } from './auth.service.js';
+import { logger } from '../../lib/logger.js';
+
+logger.info(
+  {
+    hasClientID: !!env.GOOGLE_CLIENT_ID,
+    clientIDPrefix: env.GOOGLE_CLIENT_ID ? `${env.GOOGLE_CLIENT_ID.substring(0, 15)}...` : 'MISSING',
+    callbackURL: env.GOOGLE_CALLBACK_URL,
+  },
+  '🔑 Initializing Google OAuth Strategy',
+);
 
 /**
  * Google OAuth 2.0 Strategy — session: false
