@@ -18,7 +18,14 @@ class ApiClient {
       credentials: 'include', // send the httpOnly session cookie on every request
     });
 
-    const data = await res.json() as ApiResponse<T>;
+    let data: ApiResponse<T>;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      data = (await res.json()) as ApiResponse<T>;
+    } else {
+      const text = await res.text();
+      throw new Error(`Server error (${res.status}): ${text.slice(0, 100) || res.statusText}`);
+    }
 
     if (!res.ok) {
       throw new Error(data.error ?? `Request failed with status ${res.status}`);

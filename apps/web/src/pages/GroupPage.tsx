@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api-client';
 import { PostCard } from '../components/feed/PostCard';
@@ -33,11 +33,36 @@ export function GroupPage() {
   const posts = (postsData?.pages.flatMap((p) => p.items) ?? []) as unknown as Post[];
 
   if (loadingCommunity) {
-    return <div className="max-w-2xl mx-auto"><div className="skeleton h-48 rounded-2xl" /></div>;
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 pb-20 md:pb-6">
+        <div className="skeleton h-56 rounded-2xl bg-card border border-border" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="skeleton h-40 rounded-2xl bg-card border border-border" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!community) {
-    return <div className="text-center py-20"><p className="text-muted-foreground">Group not found</p></div>;
+    return (
+      <div className="text-center py-20 max-w-md mx-auto space-y-4">
+        <p className="text-5xl mb-2">🔍</p>
+        <h2 className="text-xl font-bold text-foreground">Group not found</h2>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          The community /g/{slug} doesn&apos;t exist on campus yet or may have been removed.
+        </p>
+        <div className="pt-2 flex justify-center gap-3">
+          <Link
+            to="/groups"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold text-sm shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all cursor-pointer"
+          >
+            Explore All Groups
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const handleJoinToggle = async () => {

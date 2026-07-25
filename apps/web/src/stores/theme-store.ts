@@ -6,8 +6,13 @@ interface ThemeState {
   setDark: (dark: boolean) => void;
 }
 
+const initialDark = typeof localStorage !== 'undefined' ? localStorage.getItem('lastbench-theme') !== 'light' : true;
+if (typeof document !== 'undefined') {
+  document.documentElement.classList.toggle('dark', initialDark);
+}
+
 export const useThemeStore = create<ThemeState>((set) => ({
-  isDark: localStorage.getItem('lastbench-theme') !== 'light',
+  isDark: initialDark,
 
   toggle: () =>
     set((state) => {

@@ -79,9 +79,9 @@ export function CommentThread({ postId }: CommentThreadProps) {
         <div className="py-3">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500/80 to-fuchsia-500/80 flex items-center justify-center text-white text-[10px] font-bold">
-              {(author.displayName as string)?.[0]?.toUpperCase() ?? '?'}
+              {(author.displayName as string)?.[0]?.toUpperCase() ?? (author.username as string)?.[0]?.toUpperCase() ?? '?'}
             </div>
-            <span className="text-sm font-medium text-foreground">{author.displayName as string}</span>
+            <span className="text-sm font-medium text-foreground">{(author.displayName as string) ?? (author.username ? `u/${author.username}` : 'Anonymous')}</span>
             <span className="text-xs text-muted-foreground">•</span>
             <span className="text-xs text-muted-foreground">{timeAgo(comment.createdAt as string)}</span>
           </div>

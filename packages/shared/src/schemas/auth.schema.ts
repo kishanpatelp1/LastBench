@@ -19,15 +19,17 @@ const emailRule = z
   .toLowerCase()
   .email('Invalid email address');
 
+export const usernameRule = z
+  .string()
+  .trim()
+  .min(3, 'Username must be at least 3 characters')
+  .max(30, 'Username must be at most 30 characters')
+  .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores');
+
 // ─── Register ────────────────────────────────────────
 export const registerSchema = z.object({
   email: emailRule,
-  username: z
-    .string()
-    .trim()
-    .min(3, 'Username must be at least 3 characters')
-    .max(30, 'Username must be at most 30 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  username: usernameRule,
   password: passwordRule,
   displayName: z.string().trim().min(1).max(50).optional(),
   branch: z.string().trim().max(50).optional(),
@@ -53,6 +55,7 @@ export const resetPasswordSchema = z.object({
 
 // ─── Update Profile ─────────────────────────────────
 export const updateProfileSchema = z.object({
+  username: usernameRule.optional(),
   displayName: z.string().trim().min(1).max(50).optional(),
   bio: z.string().trim().max(500).optional(),
   branch: z.string().trim().max(50).optional(),

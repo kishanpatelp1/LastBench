@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api-client';
 import { PostCard } from '../components/feed/PostCard';
@@ -28,9 +28,20 @@ export function PostDetailPage() {
 
   if (!post) {
     return (
-      <div className="text-center py-20">
-        <p className="text-4xl mb-4">🫥</p>
-        <p className="text-muted-foreground">Post not found</p>
+      <div className="text-center py-20 max-w-md mx-auto space-y-4">
+        <p className="text-5xl mb-2">🫥</p>
+        <h2 className="text-xl font-bold text-foreground">Post not found</h2>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          This post may have been deleted by the student author, archived, or you followed an outdated link.
+        </p>
+        <div className="pt-2">
+          <Link
+            to="/feed"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold text-sm shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all cursor-pointer"
+          >
+            Return to Feed
+          </Link>
+        </div>
       </div>
     );
   }

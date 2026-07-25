@@ -58,7 +58,7 @@ export function LandingPage() {
               <span className="gradient-text">The campus social network.</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mt-6 leading-relaxed">
-              The unfiltered social platform for sharing real campus gossip, posting unhinged polls, hosting heated hostel debates, and anonymous placement rants.
+              The real-time social community for authentic campus discussions, interactive polls, hostel updates, and career placement insights.
             </p>
           </motion.div>
 

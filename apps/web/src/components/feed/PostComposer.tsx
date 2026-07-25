@@ -184,10 +184,10 @@ export function PostComposer() {
           <div className="space-y-1.5 flex-1">
             <h3 className="text-lg font-extrabold tracking-tight text-foreground flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-lastbench" />
-              Join the Backbench Conversation
+              Join the Campus Conversation
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-              Log in or register an anonymous profile to start creating posts, casting poll votes, and sharing campus gossip.
+              Log in or create an account to start creating posts, casting poll votes, and sharing discussions across campus.
             </p>
           </div>
           <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
@@ -243,7 +243,7 @@ export function PostComposer() {
           className="w-full p-4 flex items-center gap-3 hover:bg-secondary/50 transition-colors cursor-pointer"
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold">
-            {user?.displayName?.[0]?.toUpperCase() ?? '?'}
+            {user?.displayName?.[0]?.toUpperCase() ?? user?.username?.[0]?.toUpperCase() ?? '?'}
           </div>
           <span className="text-muted-foreground text-sm">What's on your mind?</span>
         </button>
