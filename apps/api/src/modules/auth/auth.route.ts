@@ -110,6 +110,17 @@ authRoutes.get('/verify-email', validate(verifyEmailSchema, 'query'), async (req
   } catch (err) { next(err); }
 });
 
+// POST /api/auth/resend-verification — the frontend's "resend" button on
+// VerifyEmailPage calls this; it needs an authenticated session (the user
+// registered and is logged in, just hasn't clicked the link yet) and is
+// rate-limited to stop it being used to spam an inbox.
+authRoutes.post('/resend-verification', authRateLimiter(), requireAuth(), async (req, res, next) => {
+  try {
+    const result = await authService.resendVerification(req.userId!);
+    res.json({ success: true, data: result });
+  } catch (err) { next(err); }
+});
+
 // POST /api/auth/forgot-password (H-2)
 authRoutes.post(
   '/forgot-password',
@@ -142,32 +153,61 @@ authRoutes.post(
 // session: false — we manage sessions ourselves via httpOnly cookies + Session table.
 // This intentionally skips Passport's built-in CSRF state check (no express-session).
 
+const googleConfigured = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+
 // GET /api/auth/google — initiate OAuth consent screen
-authRoutes.get(
-  '/google',
-  passport.authenticate('google', { session: false, scope: ['profile', 'email'] }),
-);
+authRoutes.get('/google', (req, res, next) => {
+  // GOOGLE_CLIENT_ID/SECRET are optional env vars — if a deployment hasn't
+  // configured Google sign-in, fail soft with a clear error instead of
+  // handing the browser off to Google with an empty/invalid clientID
+  // (which surfaces as Google's own generic "Error 401: invalid_client"
+  // page — a dead end with no way back to the app).
+  if (!googleConfigured) {
+    res.redirect(`${env.FRONTEND_URL}/login?error=oauth_not_configured`);
+    return;
+  }
+  passport.authenticate('google', { session: false, scope: ['profile', 'email'] })(req, res, next);
+});
 
 // GET /api/auth/google/callback — Google redirects here after user consents
-authRoutes.get(
-  '/google/callback',
-  passport.authenticate('google', {
-    session: false,
-    failureRedirect: `${env.FRONTEND_URL}/login?error=oauth_failed`,
-  }),
-  async (req, res) => {
-    try {
-      const user = req.user as { id: string; isNewUser?: boolean };
-      const rawToken = await authService.createSession(user.id);
-      setOAuthSessionCookie(res, rawToken);
-      
-      if (user.isNewUser) {
-        res.redirect(`${env.FRONTEND_URL}/onboarding?oauth=success&new=true`);
-      } else {
-        res.redirect(`${env.FRONTEND_URL}/feed?oauth=success`);
+//
+// Uses passport's custom-callback form (the 3rd argument) instead of the
+// declarative { failureRedirect } option. failureRedirect only covers
+// `done(null, false)` (bad credentials); it does NOT catch `done(err)`
+// thrown from inside the strategy's verify function (e.g. a DB race when
+// two tabs finish OAuth at once, or Prisma being briefly unreachable).
+// Uncaught, that error falls through to the global JSON error handler and
+// the user's browser renders a bare `{"success":false,...}` page instead
+// of landing back on /login with a readable message. The callback form
+// lets us catch *both* cases here and always end in a redirect.
+authRoutes.get('/google/callback', (req, res, next) => {
+  if (!googleConfigured) {
+    res.redirect(`${env.FRONTEND_URL}/login?error=oauth_not_configured`);
+    return;
+  }
+  passport.authenticate(
+    'google',
+    { session: false },
+    async (err: Error | null, user: { id: string; branch?: string | null; year?: number | null } | false) => {
+      if (err || !user) {
+        res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
+        return;
       }
-    } catch {
-      res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
-    }
-  },
-);
+      try {
+        const rawToken = await authService.createSession(user.id);
+        setOAuthSessionCookie(res, rawToken);
+
+        // Route based on whether the profile is actually complete, not just
+        // "was this account created just now" — this also correctly sends
+        // an existing account that never finished onboarding (e.g. it was
+        // created via email/password and later linked to Google) through
+        // the same profile-completion step, instead of only covering
+        // brand-new Google signups.
+        const needsOnboarding = !user.branch || user.year == null;
+        res.redirect(`${env.FRONTEND_URL}/${needsOnboarding ? 'onboarding' : 'feed'}?oauth=success`);
+      } catch {
+        res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
+      }
+    },
+  )(req, res, next);
+});

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@lastbench/shared';
@@ -9,14 +9,35 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleButton } from '../components/GoogleButton';
 
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  oauth_failed: 'Google sign-in failed. Please try again or use email/password.',
+  oauth_not_configured: 'Google sign-in is not available right now. Please use email/password.',
+};
+
 export function LoginPage() {
   const { login } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
+
+  // The API redirects here with ?error=... after a failed/misconfigured
+  // Google OAuth attempt. Show it once, then strip it from the URL so a
+  // page refresh doesn't re-show a stale toast.
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      toast.error(OAUTH_ERROR_MESSAGES[error] ?? 'Sign-in failed. Please try again.');
+      setSearchParams((prev) => {
+        prev.delete('error');
+        return prev;
+      }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onSubmit = async (data: LoginInput) => {
     setIsSubmitting(true);
@@ -115,11 +136,11 @@ export function LoginPage() {
         <Link to="/register" className="text-primary hover:underline font-medium">Create one</Link>
       </p>
 
-      {/* Demo credentials */}
+      {/* Demo credentials — must match apps/api/prisma/seed.ts exactly */}
       {import.meta.env.DEV && (
         <div className="p-4 rounded-xl bg-secondary border border-border">
           <p className="text-xs text-muted-foreground mb-2 font-medium">Demo Credentials</p>
-          <p className="text-xs text-muted-foreground">Email: <span className="text-foreground">student@iitm.ac.in</span></p>
+          <p className="text-xs text-muted-foreground">Email: <span className="text-foreground">admin@lastbench.app</span></p>
           <p className="text-xs text-muted-foreground">Password: <span className="text-foreground">Admin123</span></p>
         </div>
       )}

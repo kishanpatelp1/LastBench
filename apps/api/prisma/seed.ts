@@ -23,8 +23,10 @@ async function seed() {
       email: 'admin@lastbench.app',
       username: 'admin',
       displayName: 'Campus Admin',
-      passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
+      passwordHash: '$2b$12$R.UzFKOr9Eka9mnMdJQKSebfyXwcArZlBQ5mt0pz5TD9IpQgFt5Ly', // "Admin123" — real bcrypt hash (was a bare SHA-256 hex string that could never match bcrypt.compare, so no seeded account could ever log in)
       role: 'ADMIN',
+      branch: 'IT',
+      year: 4,
       emailVerified: true,
     },
   });
@@ -35,7 +37,7 @@ async function seed() {
       email: 'student_alpha@university.edu',
       username: 'student_alpha',
       displayName: 'Campus Explorer',
-      passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
+      passwordHash: '$2b$12$R.UzFKOr9Eka9mnMdJQKSebfyXwcArZlBQ5mt0pz5TD9IpQgFt5Ly', // "Admin123" — real bcrypt hash (was a bare SHA-256 hex string that could never match bcrypt.compare, so no seeded account could ever log in)
       branch: 'CSE',
       year: 3,
       emailVerified: true,
@@ -47,7 +49,7 @@ async function seed() {
       email: 'kovai_coder@university.edu',
       username: 'kovai_coder',
       displayName: 'Kovai Coder',
-      passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
+      passwordHash: '$2b$12$R.UzFKOr9Eka9mnMdJQKSebfyXwcArZlBQ5mt0pz5TD9IpQgFt5Ly', // "Admin123" — real bcrypt hash (was a bare SHA-256 hex string that could never match bcrypt.compare, so no seeded account could ever log in)
       branch: 'ECE',
       year: 2,
       emailVerified: true,
@@ -59,7 +61,7 @@ async function seed() {
       email: 'csk_veriyan@university.edu',
       username: 'csk_veriyan',
       displayName: 'CSK Veriyan',
-      passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
+      passwordHash: '$2b$12$R.UzFKOr9Eka9mnMdJQKSebfyXwcArZlBQ5mt0pz5TD9IpQgFt5Ly', // "Admin123" — real bcrypt hash (was a bare SHA-256 hex string that could never match bcrypt.compare, so no seeded account could ever log in)
       branch: 'Mech',
       year: 4,
       emailVerified: true,
@@ -71,7 +73,7 @@ async function seed() {
       email: 'namma_campus@university.edu',
       username: 'namma_campus',
       displayName: 'Namma Campus',
-      passwordHash: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // "Admin123"
+      passwordHash: '$2b$12$R.UzFKOr9Eka9mnMdJQKSebfyXwcArZlBQ5mt0pz5TD9IpQgFt5Ly', // "Admin123" — real bcrypt hash (was a bare SHA-256 hex string that could never match bcrypt.compare, so no seeded account could ever log in)
       branch: 'IT',
       year: 3,
       emailVerified: true,

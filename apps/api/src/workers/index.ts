@@ -52,7 +52,14 @@ export function startWorkers() {
     }
 
     try {
-      const frontendUrl = env.CORS_ORIGIN;
+      // FRONTEND_URL (not CORS_ORIGIN) is the documented "public URL of the
+      // frontend" — the two are separate env vars that default to the same
+      // localhost value in dev but can be set inconsistently in production
+      // (e.g. CORS_ORIGIN pointing at a bare API-allowed origin while
+      // FRONTEND_URL is the real Vercel domain). Using CORS_ORIGIN here
+      // would silently put the wrong domain in verify/reset emails while
+      // Google OAuth redirects (which use FRONTEND_URL) still worked fine.
+      const frontendUrl = env.FRONTEND_URL;
 
       let html = '';
       if (job.name === 'verify-email') {
