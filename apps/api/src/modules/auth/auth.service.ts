@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { emailQueue } from '../../lib/queue.js';
+import { logger } from '../../lib/logger.js';
 import { nanoid } from 'nanoid';
 import bcrypt from 'bcryptjs';
 import type { RegisterInput, LoginInput, UpdateProfileInput } from '@lastbench/shared';
@@ -9,6 +11,15 @@ import type { RegisterInput, LoginInput, UpdateProfileInput } from '@lastbench/s
 /** Hash a raw token with SHA-256 before DB storage (C-1) */
 export function hashToken(raw: string): string {
   return createHash('sha256').update(raw).digest('hex');
+}
+
+/** True if `err` is a Prisma unique-constraint violation on the given field. */
+function isUniqueConstraintError(err: unknown, field: string): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === 'P2002' &&
+    ((err.meta?.target as string[] | undefined)?.includes(field) ?? false)
+  );
 }
 
 function generateSessionToken(): string {
@@ -23,10 +34,14 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export const authService = {
   async register(input: RegisterInput) {
+    // Case-insensitive pre-checks: "User@x.com"/"user@x.com" and "JohnDoe"/"johndoe"
+    // must both be treated as taken, not just an exact-case match.
     const existingEmail = await prisma.user.findUnique({ where: { email: input.email } });
     if (existingEmail) throw new AppError(409, 'Email already registered');
 
-    const existingUsername = await prisma.user.findUnique({ where: { username: input.username } });
+    const existingUsername = await prisma.user.findFirst({
+      where: { username: { equals: input.username, mode: 'insensitive' } },
+    });
     if (existingUsername) throw new AppError(409, 'Username already taken');
 
     const passwordHash = await bcrypt.hash(input.password, 12);
@@ -35,25 +50,36 @@ export const authService = {
     const rawVerificationToken = generateSecureToken();
     const verificationTokenHash = hashToken(rawVerificationToken);
 
-    const user = await prisma.user.create({
-      data: {
-        email: input.email,
-        username: input.username,
-        displayName: input.displayName ?? input.username,
-        passwordHash,
-        branch: input.branch,
-        year: input.year,
-        // Cast entire data object — new fields exist in schema but Prisma client
-        // needs prisma generate to be re-run against the migrated DB
-        emailVerificationToken: verificationTokenHash,
-        emailVerificationExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      } as never,
-      select: {
-        id: true, email: true, username: true, displayName: true, role: true,
-        avatarUrl: true, branch: true, year: true, bio: true,
-        emailVerified: true, createdAt: true,
-      },
-    });
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: {
+          email: input.email,
+          username: input.username,
+          displayName: input.displayName ?? input.username,
+          passwordHash,
+          branch: input.branch,
+          year: input.year,
+          // Cast entire data object — new fields exist in schema but Prisma client
+          // needs prisma generate to be re-run against the migrated DB
+          emailVerificationToken: verificationTokenHash,
+          emailVerificationExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        } as never,
+        select: {
+          id: true, email: true, username: true, displayName: true, role: true,
+          avatarUrl: true, branch: true, year: true, bio: true,
+          emailVerified: true, createdAt: true,
+        },
+      });
+    } catch (err) {
+      // Two requests can pass the checks above at the same instant (double
+      // submit, retried request, etc.) and race to insert — the DB unique
+      // constraint is the real source of truth. Translate that race into
+      // the same friendly message the pre-check would have given.
+      if (isUniqueConstraintError(err, 'email')) throw new AppError(409, 'Email already registered');
+      if (isUniqueConstraintError(err, 'username')) throw new AppError(409, 'Username already taken');
+      throw err;
+    }
 
     // Auto-join default communities
     const defaults = await prisma.community.findMany({ where: { isDefault: true }, select: { id: true } });
@@ -64,13 +90,20 @@ export const authService = {
       });
     }
 
-    // Queue verification email (H-1)
-    await emailQueue.add('verify-email', {
-      to: user.email,
-      subject: 'Verify your LastBench email',
-      token: rawVerificationToken,
-      username: user.username,
-    });
+    // Queue verification email (H-1). The account must still be usable even
+    // if Redis/BullMQ is temporarily unreachable — don't let a queue blip
+    // turn a successful signup into a 500 that leaves the user stuck with
+    // an email that's "already registered" but no way in.
+    try {
+      await emailQueue.add('verify-email', {
+        to: user.email,
+        subject: 'Verify your LastBench email',
+        token: rawVerificationToken,
+        username: user.username,
+      });
+    } catch (err) {
+      logger.error({ err, userId: user.id }, '[AUTH] Failed to queue verification email');
+    }
 
     const rawToken = generateSessionToken();
     const tokenHash = hashToken(rawToken); // C-1: store hash
@@ -187,14 +220,55 @@ export const authService = {
       } as never,
     });
 
-    await emailQueue.add('password-reset', {
-      to: user.email,
-      subject: 'Reset your LastBench password',
-      token: rawToken,
-      username: user.username,
-    });
+    try {
+      await emailQueue.add('password-reset', {
+        to: user.email,
+        subject: 'Reset your LastBench password',
+        token: rawToken,
+        username: user.username,
+      });
+    } catch (err) {
+      logger.error({ err, userId: user.id }, '[AUTH] Failed to queue password-reset email');
+    }
 
     return { message: 'If that email exists, a reset link has been sent' };
+  },
+
+  // Resend the verification email — used when the original link expired,
+  // was lost, or landed in spam. Always issues a fresh token so an old,
+  // possibly-leaked link stops working once a new one is requested.
+  async resendVerification(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, username: true, emailVerified: true },
+    });
+    if (!user) throw new AppError(404, 'User not found');
+    if (user.emailVerified) return { message: 'Email is already verified' };
+
+    const rawVerificationToken = generateSecureToken();
+    const verificationTokenHash = hashToken(rawVerificationToken);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationToken: verificationTokenHash,
+        emailVerificationExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      } as never,
+    });
+
+    try {
+      await emailQueue.add('verify-email', {
+        to: user.email,
+        subject: 'Verify your LastBench email',
+        token: rawVerificationToken,
+        username: user.username,
+      });
+    } catch (err) {
+      logger.error({ err, userId: user.id }, '[AUTH] Failed to queue resend-verification email');
+      throw new AppError(503, 'Could not send email right now. Please try again shortly.');
+    }
+
+    return { message: 'Verification email sent' };
   },
 
   // H-2: Reset password
@@ -239,7 +313,10 @@ export const authService = {
   // OAuth: Find or create a user from a Google profile
   async findOrCreateGoogleUser(profile: import('passport-google-oauth20').Profile) {
     const googleId = profile.id;
-    const email = profile.emails?.[0]?.value;
+    // Normalize to match the lowercase/trimmed form used by email/password
+    // register+login, so the same person can't end up with two accounts
+    // that only differ by email casing.
+    const email = profile.emails?.[0]?.value?.trim().toLowerCase();
     const displayName = profile.displayName;
     const avatarUrl = profile.photos?.[0]?.value ?? null;
 
@@ -291,29 +368,56 @@ export const authService = {
 
     let username = base;
     let attempt = 0;
-    while (await prisma.user.findUnique({ where: { username } })) {
+    while (await prisma.user.findFirst({ where: { username: { equals: username, mode: 'insensitive' } } })) {
       attempt++;
       username = `${base}_${attempt}`;
     }
 
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        username,
-        displayName: displayName ?? username,
-        avatarUrl,
-        emailVerified: true, // Google already verified the address
-        // passwordHash intentionally omitted — nullable in schema
-        oauthAccounts: {
-          create: { provider: 'google', providerId: googleId },
+    let newUser;
+    try {
+      newUser = await prisma.user.create({
+        data: {
+          email,
+          username,
+          displayName: displayName ?? username,
+          avatarUrl,
+          emailVerified: true, // Google already verified the address
+          // passwordHash intentionally omitted — nullable in schema
+          oauthAccounts: {
+            create: { provider: 'google', providerId: googleId },
+          },
+        } as never,
+        select: {
+          id: true, email: true, username: true, displayName: true, role: true,
+          avatarUrl: true, branch: true, year: true, bio: true,
+          emailVerified: true, createdAt: true,
         },
-      } as never,
-      select: {
-        id: true, email: true, username: true, displayName: true, role: true,
-        avatarUrl: true, branch: true, year: true, bio: true,
-        emailVerified: true, createdAt: true,
-      },
-    });
+      });
+    } catch (err) {
+      // Concurrent OAuth callbacks for the same brand-new Google account
+      // (double-click, two tabs) can both pass the lookups above and race
+      // to insert. Recover by re-reading whichever row actually landed
+      // instead of surfacing a raw 500 mid-login.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const winner = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true, email: true, username: true, displayName: true, role: true,
+            avatarUrl: true, branch: true, year: true, bio: true,
+            emailVerified: true, createdAt: true,
+          },
+        });
+        if (winner) {
+          await prisma.oAuthAccount.upsert({
+            where: { provider_providerId: { provider: 'google', providerId: googleId } },
+            update: {},
+            create: { userId: winner.id, provider: 'google', providerId: googleId },
+          });
+          return winner;
+        }
+      }
+      throw err;
+    }
 
     // Auto-join default communities
     const defaults = await prisma.community.findMany({ where: { isDefault: true }, select: { id: true } });

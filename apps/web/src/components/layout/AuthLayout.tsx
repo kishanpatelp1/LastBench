@@ -3,11 +3,19 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/auth-store';
 
 export function AuthLayout() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) return null;
-  if (isAuthenticated && location.pathname !== '/verify-email') return <Navigate to="/feed" replace />;
+  if (isAuthenticated && location.pathname !== '/verify-email') {
+    // Google OAuth signups get routed to /onboarding directly by the API
+    // redirect. Email/password signups land here (on /register, now
+    // authenticated) and, without this check, would go straight to /feed
+    // having never been asked for branch/year. Route both paths the same
+    // way: incomplete profile -> onboarding, complete profile -> feed.
+    const needsOnboarding = !user?.branch || user?.year == null;
+    return <Navigate to={needsOnboarding ? '/onboarding' : '/feed'} replace />;
+  }
 
   return (
     <div className="min-h-screen flex">
