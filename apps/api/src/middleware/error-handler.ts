@@ -47,16 +47,18 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     err = normalized;
   }
 
-  // M-1: Use pino structured logging instead of console.error
-  // Never log stack traces in production responses
-  logger.error(
-    {
-      err: { message: err.message, name: err.name },
-      req: { method: req.method, url: req.url, ip: req.ip },
-      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
-    },
-    'Request error',
-  );
+  const isClientError = err instanceof AppError && err.statusCode < 500;
+  const logPayload = {
+    err: { message: err.message, name: err.name, statusCode: err instanceof AppError ? err.statusCode : 500 },
+    req: { method: req.method, url: req.url, ip: req.ip },
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+  };
+
+  if (isClientError) {
+    logger.info(logPayload, `Client response (${(err as AppError).statusCode}): ${err.message}`);
+  } else {
+    logger.error(logPayload, 'Request error');
+  }
 
   if (err instanceof AppError) {
     const body: Record<string, unknown> = {
