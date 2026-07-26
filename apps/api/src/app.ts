@@ -1,6 +1,7 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
@@ -24,14 +25,24 @@ export function createApp(): Express {
   const app = express();
 
   // ─── Global Middleware ──────────────────────────
+  app.use(compression());
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     // C-5: Force Content-Disposition: attachment on static uploads (served via /uploads)
     // This prevents browsers from rendering uploaded SVGs/HTML as pages (stored XSS)
     crossOriginEmbedderPolicy: false,
   }));
+
+  const allowedOrigins = env.CORS_ORIGIN.split(',').map((s) => s.trim());
   app.use(cors({
-    origin: env.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server) or listed origins
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

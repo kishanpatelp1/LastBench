@@ -12,10 +12,12 @@ async function main() {
   const app = createApp();
   const httpServer = createServer(app);
 
+  const allowedOrigins = env.CORS_ORIGIN.split(',').map((s) => s.trim());
+
   // Socket.IO
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: env.CORS_ORIGIN,
+      origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
       methods: ['GET', 'POST'],
       credentials: true,
     },

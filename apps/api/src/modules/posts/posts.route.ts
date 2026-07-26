@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { createPostSchema, feedQuerySchema, voteSchema, pollVoteSchema } from '@lastbench/shared';
 import { postService } from './posts.service.js';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth, optionalAuth } from '../../middleware/auth.middleware.js';
+import { requireAuth, requireVerifiedEmail, optionalAuth } from '../../middleware/auth.middleware.js';
 
 export const postRoutes: Router = Router();
 
@@ -23,7 +23,7 @@ postRoutes.get('/:id', optionalAuth(), async (req, res, next) => {
 });
 
 // POST /api/posts
-postRoutes.post('/', requireAuth(), validate(createPostSchema), async (req, res, next) => {
+postRoutes.post('/', requireAuth(), requireVerifiedEmail(), validate(createPostSchema), async (req, res, next) => {
   try {
     const post = await postService.create(req.userId!, req.validated as never);
     res.status(201).json({ success: true, data: post });
@@ -31,7 +31,7 @@ postRoutes.post('/', requireAuth(), validate(createPostSchema), async (req, res,
 });
 
 // POST /api/posts/:id/vote
-postRoutes.post('/:id/vote', requireAuth(), validate(voteSchema), async (req, res, next) => {
+postRoutes.post('/:id/vote', requireAuth(), requireVerifiedEmail(), validate(voteSchema), async (req, res, next) => {
   try {
     const result = await postService.vote(String(req.params.id), req.userId!, req.validated as never);
     res.json({ success: true, data: result });
@@ -39,7 +39,7 @@ postRoutes.post('/:id/vote', requireAuth(), validate(voteSchema), async (req, re
 });
 
 // POST /api/posts/:id/poll/vote
-postRoutes.post('/:id/poll/vote', requireAuth(), validate(pollVoteSchema), async (req, res, next) => {
+postRoutes.post('/:id/poll/vote', requireAuth(), requireVerifiedEmail(), validate(pollVoteSchema), async (req, res, next) => {
   try {
     const { optionId } = req.validated as { optionId: string };
     const result = await postService.votePoll(String(req.params.id), req.userId!, optionId);
@@ -48,7 +48,7 @@ postRoutes.post('/:id/poll/vote', requireAuth(), validate(pollVoteSchema), async
 });
 
 // DELETE /api/posts/:id
-postRoutes.delete('/:id', requireAuth(), async (req, res, next) => {
+postRoutes.delete('/:id', requireAuth(), requireVerifiedEmail(), async (req, res, next) => {
   try {
     const result = await postService.delete(String(req.params.id), req.userId!, req.userRole!);
     res.json({ success: true, data: result });

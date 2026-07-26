@@ -8,7 +8,7 @@ import {
 } from '@lastbench/shared';
 import { authService } from './auth.service.js';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth } from '../../middleware/auth.middleware.js';
+import { requireAuth, requireVerifiedEmail } from '../../middleware/auth.middleware.js';
 import { authRateLimiter } from '../../middleware/rate-limit.js';
 import { env } from '../../config/env.js';
 import { passport } from './google.strategy.js';
@@ -46,8 +46,7 @@ function clearSessionCookie(res: Response) {
 authRoutes.post('/register', authRateLimiter(), validate(registerSchema), async (req, res, next) => {
   try {
     const result = await authService.register(req.validated as never);
-    setSessionCookie(res, result.token);
-    res.status(201).json({ success: true, data: { user: result.user } });
+    res.status(201).json({ success: true, data: { user: result.user, requireVerification: result.requireVerification, message: result.message } });
   } catch (err) { next(err); }
 });
 
@@ -78,7 +77,7 @@ authRoutes.get('/me', requireAuth(), async (req, res, next) => {
 });
 
 // PATCH /api/auth/profile
-authRoutes.patch('/profile', requireAuth(), validate(updateProfileSchema), async (req, res, next) => {
+authRoutes.patch('/profile', requireAuth(), requireVerifiedEmail(), validate(updateProfileSchema), async (req, res, next) => {
   try {
     const user = await authService.updateProfile(req.userId!, req.validated as never);
     res.json({ success: true, data: user });
@@ -95,13 +94,14 @@ authRoutes.get('/verify-email', validate(verifyEmailSchema, 'query'), async (req
   } catch (err) { next(err); }
 });
 
-// POST /api/auth/resend-verification — the frontend's "resend" button on
-// VerifyEmailPage calls this; it needs an authenticated session (the user
-// registered and is logged in, just hasn't clicked the link yet) and is
-// rate-limited to stop it being used to spam an inbox.
-authRoutes.post('/resend-verification', authRateLimiter(), requireAuth(), async (req, res, next) => {
+const resendVerificationSchema = z.object({ email: z.string().trim().toLowerCase().email('Invalid email address') });
+
+// POST /api/auth/resend-verification — resend verification email using rate-limiting
+// to prevent inbox spamming without requiring an active authenticated session.
+authRoutes.post('/resend-verification', authRateLimiter(), validate(resendVerificationSchema), async (req, res, next) => {
   try {
-    const result = await authService.resendVerification(req.userId!);
+    const { email } = req.validated as { email: string };
+    const result = await authService.resendVerification(email);
     res.json({ success: true, data: result });
   } catch (err) { next(err); }
 });

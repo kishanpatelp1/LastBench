@@ -3,6 +3,7 @@ import { AppError } from '../../middleware/error-handler.js';
 import { enqueueNotification } from '../../workers/index.js';
 import type { CreateCommentInput } from '@lastbench/shared';
 import type { Prisma } from '@prisma/client';
+import { sanitizeInput } from '../../lib/sanitize.js';
 
 export const commentService = {
   async create(authorId: string, input: CreateCommentInput) {
@@ -21,7 +22,7 @@ export const commentService = {
         authorId,
         postId: input.postId,
         parentId: input.parentId ?? null,
-        content: input.content,
+        content: sanitizeInput(input.content),
         isAnonymous: input.isAnonymous ?? true,
         depth,
       },

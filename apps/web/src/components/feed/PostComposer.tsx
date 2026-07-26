@@ -38,7 +38,7 @@ export function PostComposer() {
 
   const { data: groups } = useQuery({
     queryKey: ['groups'],
-    queryFn: () => api.getCommunities() as unknown as Promise<Community[]>,
+    queryFn: () => api.getCommunities().then((res) => res.items as unknown as Community[]),
   });
 
   const triggerConfetti = () => {

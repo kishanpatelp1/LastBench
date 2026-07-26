@@ -2,13 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { createReportSchema } from '@lastbench/shared';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth, requireRole } from '../../middleware/auth.middleware.js';
+import { requireAuth, requireRole, requireVerifiedEmail } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../lib/prisma.js';
 
 export const adminRoutes: Router = Router();
 
-// Submit report (any authenticated user)
-adminRoutes.post('/reports', requireAuth(), validate(createReportSchema), async (req, res, next) => {
+// Submit report (any authenticated, verified user)
+adminRoutes.post('/reports', requireAuth(), requireVerifiedEmail(), validate(createReportSchema), async (req, res, next) => {
   try {
     const report = await prisma.report.create({
       data: { reporterId: req.userId!, ...(req.validated as Record<string, unknown>) } as never,

@@ -1,13 +1,14 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../middleware/error-handler.js';
-import type { CreateCommunityInput } from '@lastbench/shared';
+import type { CreateCommunityInput, CommunitiesQuery } from '@lastbench/shared';
+import { getCache, setCache, invalidateCache } from '../../lib/redis.js';
 
 export const communityService = {
   async create(input: CreateCommunityInput) {
     const existing = await prisma.community.findUnique({ where: { slug: input.slug } });
     if (existing) throw new AppError(409, 'Community slug already exists');
 
-    return prisma.community.create({
+    const community = await prisma.community.create({
       data: {
         name: input.name,
         slug: input.slug,
@@ -15,19 +16,45 @@ export const communityService = {
         category: input.category,
       },
     });
+    await invalidateCache('communities:*');
+    return community;
   },
 
-  async getAll() {
+  async getAll(query: CommunitiesQuery = { limit: 20 }) {
+    const { cursor, limit = 20 } = query;
+    const cacheKey = !cursor ? `communities:list:${limit}` : null;
+
+    if (cacheKey) {
+      const cached = await getCache<Record<string, unknown>>(cacheKey);
+      if (cached) return cached;
+    }
+
     const communities = await prisma.community.findMany({
       orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: { _count: { select: { members: true, posts: true } } },
     });
-    return communities.map((c: (typeof communities)[number]) => ({
-      ...c,
-      memberCount: c._count.members,
-      postCount: c._count.posts,
-      _count: undefined,
-    }));
+    const hasMore = communities.length > limit;
+    const items = hasMore ? communities.slice(0, -1) : communities;
+    const nextCursor = hasMore ? items[items.length - 1]?.id : undefined;
+
+    const result = {
+      items: items.map((c: (typeof communities)[number]) => ({
+        ...c,
+        memberCount: c._count.members,
+        postCount: c._count.posts,
+        _count: undefined,
+      })),
+      hasMore,
+      nextCursor,
+    };
+
+    if (cacheKey) {
+      await setCache(cacheKey, result, 300); // 5 min TTL for primary campus groups list
+    }
+
+    return result;
   },
 
   async getBySlug(slug: string, userId?: string) {
@@ -57,6 +84,8 @@ export const communityService = {
       create: { userId, communityId },
       update: {},
     });
+    await invalidateCache('communities:*');
+    await invalidateCache('feed:*');
     return { success: true };
   },
 
@@ -64,6 +93,8 @@ export const communityService = {
     await prisma.communityMember.deleteMany({
       where: { userId, communityId },
     });
+    await invalidateCache('communities:*');
+    await invalidateCache('feed:*');
     return { success: true };
   },
 

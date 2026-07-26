@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/auth.middleware.js';
+import { requireAuth, requireVerifiedEmail } from '../../middleware/auth.middleware.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { env } from '../../config/env.js';
 import { nanoid } from 'nanoid';
@@ -31,7 +31,7 @@ const upload = multer({
 
 export const uploadRoutes: Router = Router();
 
-uploadRoutes.post('/', requireAuth(), upload.single('file'), async (req, res, next) => {
+uploadRoutes.post('/', requireAuth(), requireVerifiedEmail(), upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) throw new AppError(400, 'No file provided');
 
