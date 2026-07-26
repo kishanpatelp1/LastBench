@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleButton } from '../components/GoogleButton';
+import { api } from '../lib/api-client';
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   oauth_failed: 'Google sign-in failed. Please try again or use email/password.',
@@ -18,6 +19,8 @@ export function LoginPage() {
   const { login } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>({
@@ -41,13 +44,31 @@ export function LoginPage() {
 
   const onSubmit = async (data: LoginInput) => {
     setIsSubmitting(true);
+    setUnverifiedEmail(null);
     try {
       await login(data.email, data.password);
       toast.success('Welcome back!');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Login failed');
+      const msg = err instanceof Error ? err.message : 'Login failed';
+      toast.error(msg);
+      if (msg.toLowerCase().includes('verify your email')) {
+        setUnverifiedEmail(data.email);
+      }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!unverifiedEmail) return;
+    setIsResending(true);
+    try {
+      await api.resendVerification(unverifiedEmail);
+      toast.success('A new verification email has been sent to your inbox!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to resend verification email');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -57,6 +78,36 @@ export function LoginPage() {
         <h2 className="text-3xl font-bold text-foreground">Welcome back</h2>
         <p className="text-muted-foreground mt-2">Sign in to your account to continue</p>
       </div>
+
+      {unverifiedEmail && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm space-y-3"
+        >
+          <div className="flex items-start gap-2.5">
+            <Mail className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-foreground">Email Verification Required</p>
+              <p className="text-muted-foreground text-xs mt-1">
+                Your account (<span className="text-foreground font-medium">{unverifiedEmail}</span>) has not been verified yet. Please check your email for the activation link.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={isResending}
+            className="w-full py-2.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-medium hover:bg-muted transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isResending ? (
+              <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+            ) : (
+              'Resend Verification Email'
+            )}
+          </button>
+        </motion.div>
+      )}
 
       {/* Google OAuth */}
       <GoogleButton />

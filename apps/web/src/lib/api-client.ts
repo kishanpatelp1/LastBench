@@ -36,7 +36,7 @@ class ApiClient {
 
   // Auth
   async register(body: Record<string, unknown>) {
-    return this.request<{ user: Record<string, unknown> }>('/auth/register', {
+    return this.request<{ user: Record<string, unknown>; requireVerification?: boolean; message?: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -75,8 +75,11 @@ class ApiClient {
     return this.request(`/auth/verify-email?token=${encodeURIComponent(token)}`);
   }
 
-  async resendVerification() {
-    return this.request('/auth/resend-verification', { method: 'POST' });
+  async resendVerification(email: string) {
+    return this.request<{ message?: string }>('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   }
 
   async updateProfile(body: Record<string, unknown>) {
@@ -142,12 +145,19 @@ class ApiClient {
   }
 
   // Communities
-  async getCommunities() {
-    return this.request<Record<string, unknown>[]>('/communities');
+  async getCommunities(params: Record<string, string> = {}) {
+    const search = new URLSearchParams(params).toString();
+    return this.request<PaginatedResponse<Record<string, unknown>>>(
+      search ? `/communities?${search}` : '/communities',
+    );
   }
 
   async getCommunity(slug: string) {
     return this.request<Record<string, unknown>>(`/communities/${slug}`);
+  }
+
+  async getCommunityMembers(id: string) {
+    return this.request<Record<string, unknown>[]>(`/communities/${id}/members`);
   }
 
   async joinCommunity(id: string) {

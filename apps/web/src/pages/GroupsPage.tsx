@@ -9,7 +9,7 @@ import { Community } from '../types';
 export function GroupsPage() {
   const { data: communities, isLoading } = useQuery<Community[]>({
     queryKey: ['communities'],
-    queryFn: () => api.getCommunities() as unknown as Promise<Community[]>,
+    queryFn: () => api.getCommunities().then((res) => res.items as unknown as Community[]),
   });
 
   const categoryColors: Record<string, string> = {

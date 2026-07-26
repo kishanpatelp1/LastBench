@@ -10,6 +10,7 @@ declare global {
       userId?: string;
       userRole?: string;
       sessionId?: string;
+      emailVerified?: boolean;
     }
   }
 }
@@ -26,7 +27,7 @@ export function requireAuth() {
 
       const session = await prisma.session.findUnique({
         where: { token: tokenHash },
-        include: { user: { select: { id: true, role: true, isBanned: true } } },
+        include: { user: { select: { id: true, role: true, isBanned: true, emailVerified: true } } },
       });
 
       if (!session || session.expiresAt < new Date()) {
@@ -43,11 +44,22 @@ export function requireAuth() {
       req.userId = session.user.id;
       req.userRole = session.user.role;
       req.sessionId = session.id;
+      req.emailVerified = session.user.emailVerified;
 
       next();
     } catch (err) {
       next(err);
     }
+  };
+}
+
+export function requireVerifiedEmail() {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.emailVerified) {
+      next(new AppError(403, 'Please verify your email address to interact and participate.', 'EMAIL_NOT_VERIFIED'));
+      return;
+    }
+    next();
   };
 }
 
@@ -60,13 +72,14 @@ export function optionalAuth() {
 
         const session = await prisma.session.findUnique({
           where: { token: tokenHash },
-          include: { user: { select: { id: true, role: true, isBanned: true } } },
+          include: { user: { select: { id: true, role: true, isBanned: true, emailVerified: true } } },
         });
 
         if (session && session.expiresAt > new Date() && !session.user.isBanned) {
           req.userId = session.user.id;
           req.userRole = session.user.role;
           req.sessionId = session.id;
+          req.emailVerified = session.user.emailVerified;
         }
       }
       next();

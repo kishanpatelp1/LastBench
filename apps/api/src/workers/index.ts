@@ -1,8 +1,21 @@
-import { createWorker } from '../lib/queue.js';
-import { moderationQueue, notificationQueue, emailQueue } from '../lib/queue.js';
+import { Queue } from 'bullmq';
+import nodemailer from 'nodemailer';
+import { createWorker, moderationQueue, notificationQueue, emailQueue, connection } from '../lib/queue.js';
 import { prisma } from '../lib/prisma.js';
 import { logger } from '../lib/logger.js';
 import { env } from '../config/env.js';
+
+const smtpTransporter = env.SMTP_USER && env.SMTP_PASS
+  ? nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_PORT === 465,
+      auth: {
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASS,
+      },
+    })
+  : null;
 
 export function startWorkers() {
   // ─── Moderation Worker ────────────────────────────────────────────────────
@@ -42,23 +55,19 @@ export function startWorkers() {
     logger.info({ recipientId, type }, '[NOTIFICATION] Created notification');
   });
 
-  // ─── Email Worker (M-9: sends real emails via Resend) ────────────────────
+  // ─── Email Worker (M-9: sends real emails via SMTP or Resend) ────────────
   createWorker('email', async (job) => {
     const { to, subject, token, username } = job.data as Record<string, string>;
 
-    if (!env.RESEND_API_KEY) {
-      logger.warn({ to, subject }, '[EMAIL] RESEND_API_KEY not set — skipping email');
+    const hasSmtp = Boolean(smtpTransporter);
+    const hasResend = Boolean(env.RESEND_API_KEY);
+
+    if (!hasSmtp && !hasResend) {
+      logger.warn({ to, subject }, '[EMAIL] Neither SMTP_USER/PASS nor RESEND_API_KEY set — skipping email');
       return;
     }
 
     try {
-      // FRONTEND_URL (not CORS_ORIGIN) is the documented "public URL of the
-      // frontend" — the two are separate env vars that default to the same
-      // localhost value in dev but can be set inconsistently in production
-      // (e.g. CORS_ORIGIN pointing at a bare API-allowed origin while
-      // FRONTEND_URL is the real Vercel domain). Using CORS_ORIGIN here
-      // would silently put the wrong domain in verify/reset emails while
-      // Google OAuth redirects (which use FRONTEND_URL) still worked fine.
       const frontendUrl = env.FRONTEND_URL;
 
       let html = '';
@@ -86,26 +95,37 @@ export function startWorkers() {
         `;
       }
 
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'LastBench <noreply@lastbench.app>',
+      if (hasSmtp && smtpTransporter) {
+        const from = env.SMTP_FROM || `LastBench <${env.SMTP_USER}>`;
+        await smtpTransporter.sendMail({
+          from,
           to,
           subject,
           html,
-        }),
-      });
+        });
+        logger.info({ to, subject }, '[EMAIL] Sent successfully via SMTP (Nodemailer)');
+      } else if (hasResend && env.RESEND_API_KEY) {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: env.RESEND_FROM_EMAIL,
+            to,
+            subject,
+            html,
+          }),
+        });
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Resend API error: ${response.status} ${error}`);
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Resend API error: ${response.status} ${error}`);
+        }
+
+        logger.info({ to, subject }, '[EMAIL] Sent successfully via Resend');
       }
-
-      logger.info({ to, subject }, '[EMAIL] Sent successfully via Resend');
     } catch (err) {
       logger.error({ err, to, subject }, '[EMAIL] Failed to send');
       throw err; // Re-throw so BullMQ retries the job
@@ -115,13 +135,8 @@ export function startWorkers() {
   // ─── C-2: Session Cleanup — repeatable job every hour ────────────────────
   // BullMQ repeatable: deletes expired sessions that were never re-used.
   // Without this, the Session table grows by ~150K rows/month with 5K daily users.
+  // Schedule hourly session cleanup job using shared queue connection.
   (async () => {
-    const cleanupQueue = (await import('../lib/queue.js')).moderationQueue.constructor;
-    // Use the emailQueue connection to schedule session cleanup separately
-    const { Queue } = await import('bullmq');
-    const { redis } = await import('../lib/redis.js');
-    const connection = { ...redis.options, maxRetriesPerRequest: null };
-
     const sessionCleanupQueue = new Queue('session-cleanup', { connection });
     await sessionCleanupQueue.add(
       'purge-expired',

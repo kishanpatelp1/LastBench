@@ -19,9 +19,10 @@ export function FeedPage() {
   const [isResending, setIsResending] = useState(false);
 
   const handleResend = async () => {
+    if (!user?.email) return;
     setIsResending(true);
     try {
-      await api.resendVerification();
+      await api.resendVerification(user.email);
       toast.success('Verification email resent!');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to resend');

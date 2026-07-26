@@ -23,7 +23,7 @@ interface AuthState {
   isLoading: boolean;
   setUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: Record<string, unknown>) => Promise<void>;
+  register: (data: Record<string, unknown>) => Promise<{ requireVerification?: boolean; message?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -42,9 +42,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   register: async (data) => {
-    // Cookie is set by the server; we only need the user object
     const result = await api.register(data);
-    set({ user: result.user as unknown as User, isAuthenticated: true });
+    if (!result.requireVerification) {
+      set({ user: result.user as unknown as User, isAuthenticated: true });
+    }
+    return result;
   },
 
   logout: async () => {

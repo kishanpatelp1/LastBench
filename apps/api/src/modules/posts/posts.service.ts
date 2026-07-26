@@ -3,7 +3,8 @@ import { invalidateCache, getCache, setCache } from '../../lib/redis.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { moderationQueue } from '../../lib/queue.js';
 import type { CreatePostInput, FeedQuery, VoteInput } from '@lastbench/shared';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { sanitizeInput } from '../../lib/sanitize.js';
 
 export const postService = {
   async create(authorId: string, input: CreatePostInput) {
@@ -20,8 +21,8 @@ export const postService = {
       data: {
         authorId,
         communityId: input.communityId,
-        title: input.title,
-        content: input.content,
+        title: input.title ? sanitizeInput(input.title) : undefined,
+        content: sanitizeInput(input.content),
         type: input.type ?? 'TEXT',
         isAnonymous: input.isAnonymous ?? true,
         mediaUrls: input.mediaUrls ?? [],
@@ -32,7 +33,7 @@ export const postService = {
                 expiresAt: input.poll.expiresAt ? new Date(input.poll.expiresAt) : null,
                 options: {
                   create: input.poll.options.map((text, idx) => ({
-                    text,
+                    text: sanitizeInput(text),
                     orderNum: idx,
                   })),
                 },
@@ -206,19 +207,28 @@ export const postService = {
     const validOption = poll.options.find((o: (typeof poll.options)[number]) => o.id === optionId);
     if (!validOption) throw new AppError(400, 'Invalid poll option');
 
-    // Check if already voted on any option in this poll
-    const existing = await prisma.pollVote.findFirst({
-      where: {
-        userId,
-        option: { pollId: poll.id },
-      },
-    });
+    try {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        // Check if already voted on any option in this poll
+        const existing = await tx.pollVote.findFirst({
+          where: {
+            userId,
+            option: { pollId: poll.id },
+          },
+        });
 
-    if (existing) throw new AppError(400, 'You have already voted on this poll');
+        if (existing) throw new AppError(400, 'You have already voted on this poll');
 
-    await prisma.pollVote.create({
-      data: { userId, optionId, pollId: poll.id },
-    });
+        await tx.pollVote.create({
+          data: { userId, optionId, pollId: poll.id },
+        });
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new AppError(400, 'You have already voted on this poll');
+      }
+      throw err;
+    }
 
     return { success: true };
   },

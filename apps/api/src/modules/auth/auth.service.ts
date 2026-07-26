@@ -105,13 +105,11 @@ export const authService = {
       logger.error({ err, userId: user.id }, '[AUTH] Failed to queue verification email');
     }
 
-    const rawToken = generateSessionToken();
-    const tokenHash = hashToken(rawToken); // C-1: store hash
-    await prisma.session.create({
-      data: { userId: user.id, token: tokenHash, expiresAt: new Date(Date.now() + SESSION_TTL_MS) },
-    });
-
-    return { user, token: rawToken }; // C-1: return raw token to client
+    return { 
+      user, 
+      requireVerification: true, 
+      message: 'Registration successful. Please verify your email address before logging in.' 
+    };
   },
 
   async login(input: LoginInput) {
@@ -129,6 +127,10 @@ export const authService = {
 
     const valid = await bcrypt.compare(input.password, user.passwordHash);
     if (!valid) throw new AppError(401, 'Invalid email or password');
+
+    if (!user.emailVerified) {
+      throw new AppError(403, 'Please verify your email address before logging in.', 'EMAIL_NOT_VERIFIED');
+    }
 
     const rawToken = generateSessionToken();
     const tokenHash = hashToken(rawToken); // C-1: store hash
@@ -249,13 +251,18 @@ export const authService = {
   // Resend the verification email — used when the original link expired,
   // was lost, or landed in spam. Always issues a fresh token so an old,
   // possibly-leaked link stops working once a new one is requested.
-  async resendVerification(userId: string) {
+  async resendVerification(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { email: normalizedEmail },
       select: { id: true, email: true, username: true, emailVerified: true },
     });
-    if (!user) throw new AppError(404, 'User not found');
-    if (user.emailVerified) return { message: 'Email is already verified' };
+    if (!user) {
+      return { message: 'If an account exists with this email, a verification link has been sent.' };
+    }
+    if (user.emailVerified) {
+      return { message: 'This email address is already verified. You can proceed to log in.' };
+    }
 
     const rawVerificationToken = generateSecureToken();
     const verificationTokenHash = hashToken(rawVerificationToken);

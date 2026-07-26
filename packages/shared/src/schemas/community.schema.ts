@@ -31,6 +31,12 @@ export const searchQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 
+// ─── Query Communities ───────────────────────────────
+export const communitiesQuerySchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
 // ─── Report ──────────────────────────────────────────
 export const createReportSchema = z.object({
   postId: z.string().min(1).optional(),
@@ -52,4 +58,5 @@ export const createReportSchema = z.object({
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
 export type UpdateCommunityInput = z.infer<typeof updateCommunitySchema>;
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
+export type CommunitiesQuery = z.infer<typeof communitiesQuerySchema>;
 export type CreateReportInput = z.infer<typeof createReportSchema>;

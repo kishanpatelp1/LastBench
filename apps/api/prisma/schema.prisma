@@ -109,6 +109,7 @@ model OAuthAccount {
 }
 
 // ─── Communities ───────────────────────────────────
+// Note: GIN trigram indexes exist on name and description via raw SQL migration (won't show in prisma db pull diffs)
 model Community {
   id          String   @id @default(cuid())
   name        String   @unique
@@ -152,6 +153,7 @@ model CommunityRule {
 }
 
 // ─── Posts ─────────────────────────────────────────
+// Note: GIN trigram indexes exist on title and content via raw SQL migration (won't show in prisma db pull diffs)
 model Post {
   id           String   @id @default(cuid())
   authorId     String
