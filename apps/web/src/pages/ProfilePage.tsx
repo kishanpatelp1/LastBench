@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/auth-store';
 import { motion } from 'framer-motion';
-import { Mail, GraduationCap, Calendar, MessageSquare, FileText, Settings, LogOut, Upload } from 'lucide-react';
+import { Mail, GraduationCap, Calendar, MessageSquare, FileText, Settings, LogOut, Upload, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { api } from '../lib/api-client';
@@ -44,6 +44,21 @@ export function ProfilePage() {
     }
   };
 
+  const handleRemoveAvatar = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsUploading(true);
+    try {
+      await api.updateProfile({ avatarUrl: '' });
+      setAvatarUrl(null);
+      if (user) setUser({ ...user, avatarUrl: null });
+      toast.success('Profile picture removed!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const stats = [
     { label: 'Posts', value: user._count?.posts ?? '—', icon: FileText },
     { label: 'Comments', value: user._count?.comments ?? '—', icon: MessageSquare },
@@ -76,11 +91,21 @@ export function ProfilePage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-all disabled:opacity-50 opacity-0 group-hover:opacity-100"
+              className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-all disabled:opacity-50 opacity-0 group-hover:opacity-100 cursor-pointer"
               title="Upload profile picture"
             >
               {isUploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={14} />}
             </button>
+            {avatarUrl && (
+              <button
+                onClick={handleRemoveAvatar}
+                disabled={isUploading}
+                className="absolute top-0 right-0 p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all disabled:opacity-50 opacity-0 group-hover:opacity-100 cursor-pointer"
+                title="Remove profile picture"
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
 
           <div className="mt-4">

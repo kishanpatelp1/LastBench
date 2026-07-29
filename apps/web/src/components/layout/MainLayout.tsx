@@ -1,6 +1,8 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Search, Bell, User, LogOut, Sun, Moon, Compass, Menu, X, Users } from 'lucide-react';
+import { Home, Search, Bell, User, LogOut, Sun, Moon, Compass, Menu, X, Users, ShieldAlert } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../lib/api-client';
 import { useAuthStore } from '../../stores/auth-store';
 import { useThemeStore } from '../../stores/theme-store';
 import { cn } from '../../lib/utils';
@@ -13,6 +15,16 @@ export function MainLayout() {
   const { isDark, toggle } = useThemeStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const { data: unreadData } = useQuery({
+    queryKey: ['notifications-unread-count'],
+    queryFn: () => api.getUnreadCount(),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+  });
+
+  const unreadCount = unreadData?.count ?? 0;
+
   const publicNavItems = [
     { path: '/feed', label: 'Feed', icon: Home },
     { path: '/groups', label: 'Groups', icon: Users },
@@ -24,6 +36,9 @@ export function MainLayout() {
     ...(isAuthenticated ? [
       { path: '/notifications', label: 'Notifications', icon: Bell },
       { path: '/profile', label: 'Profile', icon: User },
+    ] : []),
+    ...(isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'MODERATOR') ? [
+      { path: '/admin', label: 'Admin', icon: ShieldAlert },
     ] : []),
   ];
 
@@ -62,7 +77,14 @@ export function MainLayout() {
                       : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                   )}
                 >
-                  <item.icon size={18} />
+                  <div className="relative flex items-center justify-center">
+                    <item.icon size={18} />
+                    {item.path === '/notifications' && unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2 px-1 min-w-[16px] h-[16px] rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <span>{item.label}</span>
                   {isActive && (
                     <motion.div
@@ -143,14 +165,21 @@ export function MainLayout() {
               to={item.path}
               onClick={() => setMobileMenuOpen(false)}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                'flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all',
                 location.pathname.startsWith(item.path)
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-secondary'
               )}
             >
-              <item.icon size={18} />
-              {item.label}
+              <div className="flex items-center gap-3">
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </div>
+              {item.path === '/notifications' && unreadCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-primary text-white text-xs font-bold">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
           ))}
           {isAuthenticated ? (
@@ -198,7 +227,7 @@ export function MainLayout() {
       {/* ─── Mobile Bottom Nav ────────────────────── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-border px-2 py-2 z-50">
         <div className="flex items-center justify-around">
-          {navItems.slice(0, 5).map((item) => {
+          {navItems.slice(0, 6).map((item) => {
             const isActive = location.pathname.startsWith(item.path);
             return (
               <Link
@@ -209,7 +238,14 @@ export function MainLayout() {
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
-                <item.icon size={20} />
+                <div className="relative flex items-center justify-center">
+                  <item.icon size={20} />
+                  {item.path === '/notifications' && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-[14px] rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
             );

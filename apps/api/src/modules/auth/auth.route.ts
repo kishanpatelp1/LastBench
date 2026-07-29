@@ -173,7 +173,7 @@ authRoutes.get('/google/callback', (req, res, next) => {
   passport.authenticate(
     'google',
     { session: false },
-    async (err: Error | null, user: { id: string; branch?: string | null; year?: number | null } | false) => {
+    async (err: Error | null, user: { id: string; onboardingCompleted?: boolean; branch?: string | null; year?: number | null } | false) => {
       if (err || !user) {
         res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
         return;
@@ -182,13 +182,8 @@ authRoutes.get('/google/callback', (req, res, next) => {
         const rawToken = await authService.createSession(user.id);
         setOAuthSessionCookie(res, rawToken);
 
-        // Route based on whether the profile is actually complete, not just
-        // "was this account created just now" — this also correctly sends
-        // an existing account that never finished onboarding (e.g. it was
-        // created via email/password and later linked to Google) through
-        // the same profile-completion step, instead of only covering
-        // brand-new Google signups.
-        const needsOnboarding = !user.branch || user.year == null;
+        // Route based on explicit onboardingCompleted flag
+        const needsOnboarding = !user.onboardingCompleted;
         res.redirect(`${env.FRONTEND_URL}/${needsOnboarding ? 'onboarding' : 'feed'}?oauth=success`);
       } catch {
         res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);

@@ -43,8 +43,8 @@ adminRoutes.get('/reports', requireAuth(), requireRole('ADMIN', 'MODERATOR'), va
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         reporter: { select: { id: true, username: true } },
-        post: { select: { id: true, content: true } },
-        comment: { select: { id: true, content: true } },
+        post: { select: { id: true, content: true, isDeleted: true, author: { select: { id: true, username: true, isBanned: true } } } },
+        comment: { select: { id: true, content: true, isDeleted: true, author: { select: { id: true, username: true, isBanned: true } } } },
       },
     });
 
@@ -74,11 +74,12 @@ adminRoutes.patch('/reports/:id', requireAuth(), requireRole('ADMIN', 'MODERATOR
   } catch (err) { next(err); }
 });
 
-// Admin: Ban user
-adminRoutes.post('/users/:id/ban', requireAuth(), requireRole('ADMIN'), async (req, res, next) => {
+// Admin/Mod: Ban or unban user
+adminRoutes.post('/users/:id/ban', requireAuth(), requireRole('ADMIN', 'MODERATOR'), async (req, res, next) => {
   try {
-    await prisma.user.update({ where: { id: req.params.id as string }, data: { isBanned: true } });
-    res.json({ success: true });
+    const isBanned = req.body?.ban !== false;
+    await prisma.user.update({ where: { id: req.params.id as string }, data: { isBanned } });
+    res.json({ success: true, isBanned });
   } catch (err) { next(err); }
 });
 

@@ -13,7 +13,7 @@ export function AuthLayout() {
     // authenticated) and, without this check, would go straight to /feed
     // having never been asked for branch/year. Route both paths the same
     // way: incomplete profile -> onboarding, complete profile -> feed.
-    const needsOnboarding = !user?.branch || user?.year == null;
+    const needsOnboarding = !user?.onboardingCompleted;
     return <Navigate to={needsOnboarding ? '/onboarding' : '/feed'} replace />;
   }
 

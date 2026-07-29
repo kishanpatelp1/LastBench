@@ -13,6 +13,7 @@ interface User {
   year: number | null;
   bio: string | null;
   emailVerified: boolean;
+  onboardingCompleted: boolean;
   createdAt: string;
   _count?: { posts: number; comments: number };
 }

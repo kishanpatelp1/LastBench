@@ -58,6 +58,12 @@ export const communityService = {
   },
 
   async getBySlug(slug: string, userId?: string) {
+    const cacheKey = !userId ? `communities:slug:${slug}` : null;
+    if (cacheKey) {
+      const cached = await getCache<Record<string, unknown>>(cacheKey);
+      if (cached) return cached;
+    }
+
     const community = await prisma.community.findUnique({
       where: { slug },
       include: {
@@ -68,7 +74,7 @@ export const communityService = {
     });
     if (!community) throw new AppError(404, 'Community not found');
 
-    return {
+    const result = {
       ...community,
       memberCount: community._count.members,
       postCount: community._count.posts,
@@ -76,6 +82,10 @@ export const communityService = {
       _count: undefined,
       members: undefined,
     };
+    if (cacheKey) {
+      await setCache(cacheKey, result, 300); // 5 min TTL
+    }
+    return result;
   },
 
   async join(communityId: string, userId: string) {
@@ -102,7 +112,7 @@ export const communityService = {
     return prisma.communityMember.findMany({
       where: { communityId },
       include: {
-        user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+        user: { select: { id: true, username: true, displayName: true, avatarUrl: true, branch: true, year: true, role: true } },
       },
       orderBy: { joinedAt: 'desc' },
       take: 50,

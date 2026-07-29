@@ -40,6 +40,7 @@ export function OnboardingPage() {
           username: dataToSubmit.username ?? user.username,
           branch: dataToSubmit.branch ?? user.branch,
           year: dataToSubmit.year ?? user.year,
+          onboardingCompleted: true,
         });
       }
       

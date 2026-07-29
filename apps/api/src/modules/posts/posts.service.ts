@@ -66,8 +66,8 @@ export const postService = {
       : null;
 
     if (cacheKey) {
-      const cached = await getCache<ReturnType<typeof this.formatPost>[]>(cacheKey);
-      if (cached) return { items: cached, nextCursor: undefined, hasMore: false };
+      const cached = await getCache<{ items: any[]; nextCursor?: string; hasMore: boolean }>(cacheKey);
+      if (cached) return cached;
     }
 
     // Build where clause
@@ -111,16 +111,18 @@ export const postService = {
     const items = hasMore ? posts.slice(0, -1) : posts;
     const formatted = items.map((post: (typeof items)[number]) => this.formatPost(post, userId));
 
-    // M-8: Populate cache for anonymous first-page results (TTL 60s)
-    if (cacheKey && !hasMore) {
-      await setCache(cacheKey, formatted, 60);
-    }
-
-    return {
+    const result = {
       items: formatted,
       nextCursor: hasMore ? items[items.length - 1]?.id : undefined,
       hasMore,
     };
+
+    // M-8: Populate cache for anonymous first-page results (TTL 60s)
+    if (cacheKey) {
+      await setCache(cacheKey, result, 60);
+    }
+
+    return result;
   },
 
   async getById(postId: string, userId?: string) {
