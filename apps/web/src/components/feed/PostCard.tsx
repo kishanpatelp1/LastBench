@@ -1,12 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowUp, ArrowDown, MessageSquare, Share2, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageSquare, Share2, MoreHorizontal, Trash2, Flag } from 'lucide-react';
 import { cn, timeAgo, formatNumber } from '../../lib/utils';
 import { api } from '../../lib/api-client';
 import { useAuthStore } from '../../stores/auth-store';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Post } from '../../types';
+import { ReportModal } from '../ReportModal';
 
 interface PostCardProps {
   post: Post;
@@ -14,10 +16,27 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuthStore();
   const [optimisticScore, setOptimisticScore] = useState(post.score);
   const [optimisticVote, setOptimisticVote] = useState(post.userVote);
   const [showMenu, setShowMenu] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await api.deletePost(post.id);
+      toast.success('Post deleted');
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      if (window.location.pathname.startsWith('/post/')) {
+        navigate('/feed');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete post');
+    }
+  };
 
   const author = post.author;
   const community = post.community;
@@ -133,9 +152,48 @@ export function PostCard({ post }: PostCardProps) {
             </div>
           </div>
 
-          <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground transition-colors cursor-pointer">
-            <MoreHorizontal size={16} />
-          </button>
+          <div className="relative">
+            <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground transition-colors cursor-pointer">
+              <MoreHorizontal size={16} />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-8 z-30 w-44 py-1.5 rounded-xl border border-border bg-card shadow-xl text-sm overflow-hidden">
+                {(user?.id === author?.id || user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
+                  <button
+                    onClick={() => { setShowMenu(false); handleDelete(); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-red-400 hover:bg-red-500/10 transition-colors text-left cursor-pointer"
+                  >
+                    <Trash2 size={15} />
+                    <span>Delete Post</span>
+                  </button>
+                )}
+                {user?.id !== author?.id && (
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      if (!isAuthenticated) { toast.error('Please login to report content'); navigate('/login'); return; }
+                      setReportModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-muted-foreground hover:text-red-400 hover:bg-secondary transition-colors text-left cursor-pointer"
+                  >
+                    <Flag size={15} />
+                    <span>Report Post</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+                    toast.success('Link copied!');
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-left cursor-pointer"
+                >
+                  <Share2 size={15} />
+                  <span>Copy Link</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Title */}
@@ -268,6 +326,7 @@ export function PostCard({ post }: PostCardProps) {
           </button>
         </div>
       </div>
+      <ReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} targetId={post.id} targetType="POST" />
     </article>
   );
 }

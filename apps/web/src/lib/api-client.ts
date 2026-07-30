@@ -144,6 +144,10 @@ class ApiClient {
     });
   }
 
+  async deleteComment(id: string) {
+    return this.request(`/comments/${id}`, { method: 'DELETE' });
+  }
+
   // Communities
   async getCommunities(params: Record<string, string> = {}) {
     const search = new URLSearchParams(params).toString();
@@ -207,6 +211,30 @@ class ApiClient {
     return this.request<{ url: string; filename: string }>('/upload', {
       method: 'POST',
       body: formData,
+    });
+  }
+
+  // Admin
+  async getAdminStats() {
+    return this.request<{ users: number; posts: number; reports: number; communities: number }>('/admin/stats');
+  }
+
+  async getAdminReports(params: Record<string, string> = {}) {
+    const search = new URLSearchParams(params).toString();
+    return this.request<PaginatedResponse<any>>(`/admin/reports?${search}`);
+  }
+
+  async updateReportStatus(id: string, status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED') {
+    return this.request(`/admin/reports/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async banUser(id: string, ban: boolean = true) {
+    return this.request(`/admin/users/${id}/ban`, {
+      method: 'POST',
+      body: JSON.stringify({ ban }),
     });
   }
 }

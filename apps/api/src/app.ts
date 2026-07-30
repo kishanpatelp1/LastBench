@@ -31,6 +31,19 @@ export function createApp(): Express {
     // C-5: Force Content-Disposition: attachment on static uploads (served via /uploads)
     // This prevents browsers from rendering uploaded SVGs/HTML as pages (stored XSS)
     crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: env.NODE_ENV === 'production' ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+        connectSrc: ["'self'", "wss:", "ws:", "https:", "http:"],
+        frameSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    } : false, // Disabled in development for Vite hot-module reload & tooling
   }));
 
   const allowedOrigins = env.CORS_ORIGIN.split(',').map((s) => s.trim());

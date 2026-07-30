@@ -5,6 +5,9 @@ export interface User {
   branch?: string | null;
   year?: number | null;
   email?: string;
+  avatarUrl?: string | null;
+  emailVerified?: boolean;
+  onboardingCompleted?: boolean;
   createdAt: string;
   bio?: string | null;
   _count?: {
@@ -71,6 +74,7 @@ export interface Notification {
   type: string;
   title: string;
   body?: string | null;
+  data?: { postId?: string; commentId?: string; communitySlug?: string; [key: string]: unknown } | null;
   isRead: boolean;
   createdAt: string;
 }

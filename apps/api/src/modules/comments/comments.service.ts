@@ -142,6 +142,22 @@ export const commentService = {
     return result;
   },
 
+  async delete(commentId: string, userId: string, role: string) {
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+    if (!comment) throw new AppError(404, 'Comment not found');
+
+    if (comment.authorId !== userId && role !== 'ADMIN' && role !== 'MODERATOR') {
+      throw new AppError(403, 'Not authorized');
+    }
+
+    await prisma.comment.update({
+      where: { id: commentId },
+      data: { isDeleted: true, content: '[deleted]' },
+    });
+
+    return { success: true };
+  },
+
   formatComment(comment: Record<string, unknown>) {
     const isAnon = comment.isAnonymous as boolean;
     const author = comment.author as Record<string, unknown>;

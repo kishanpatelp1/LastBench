@@ -60,7 +60,7 @@ export const updateProfileSchema = z.object({
   bio: z.string().trim().max(500).optional(),
   branch: z.string().trim().max(50).optional(),
   year: z.number().int().min(1).max(6).optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().url().nullable().or(z.literal('')).optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

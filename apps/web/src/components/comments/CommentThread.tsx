@@ -4,9 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api-client';
 import { useAuthStore } from '../../stores/auth-store';
 import { motion } from 'framer-motion';
-import { ArrowUp, ArrowDown, MessageSquare, Send } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageSquare, Send, Trash2, Flag } from 'lucide-react';
 import { cn, timeAgo, formatNumber } from '../../lib/utils';
 import { toast } from 'sonner';
+import { ReportModal } from '../ReportModal';
 
 interface CommentThreadProps {
   postId: string;
@@ -15,7 +16,7 @@ interface CommentThreadProps {
 export function CommentThread({ postId }: CommentThreadProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const [newComment, setNewComment] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -58,6 +59,18 @@ export function CommentThread({ postId }: CommentThreadProps) {
   const CommentItem = ({ comment, depth = 0 }: { comment: Record<string, unknown>; depth?: number }) => {
     const author = comment.author as Record<string, unknown>;
     const replies = (comment.replies as Array<Record<string, unknown>>) ?? [];
+    const [reportModalOpen, setReportModalOpen] = useState(false);
+
+    const handleCommentDelete = async () => {
+      if (!confirm('Are you sure you want to delete this comment?')) return;
+      try {
+        await api.deleteComment(comment.id as string);
+        toast.success('Comment deleted');
+        queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to delete comment');
+      }
+    };
 
     const handleCommentVote = async (type: 'UP' | 'DOWN') => {
       if (!isAuthenticated) {
@@ -118,7 +131,33 @@ export function CommentThread({ postId }: CommentThreadProps) {
               <MessageSquare size={12} />
               Reply
             </button>
+            {(user?.id === author.id || user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
+              <button
+                onClick={handleCommentDelete}
+                className="text-xs text-muted-foreground hover:text-red-400 font-medium transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <Trash2 size={12} />
+                Delete
+              </button>
+            )}
+            {user?.id !== author.id && author.id !== 'anonymous' && (
+              <button
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    toast.error('Please login to report content');
+                    navigate('/login');
+                    return;
+                  }
+                  setReportModalOpen(true);
+                }}
+                className="text-xs text-muted-foreground hover:text-red-400 font-medium transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <Flag size={12} />
+                Report
+              </button>
+            )}
           </div>
+          <ReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} targetId={comment.id as string} targetType="COMMENT" />
         </div>
 
         {replies.map((reply) => (

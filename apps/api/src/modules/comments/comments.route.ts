@@ -28,3 +28,10 @@ commentRoutes.post('/:id/vote', requireAuth(), requireVerifiedEmail(), validate(
     res.json({ success: true, data: result });
   } catch (err) { next(err); }
 });
+
+commentRoutes.delete('/:id', requireAuth(), requireVerifiedEmail(), async (req, res, next) => {
+  try {
+    const result = await commentService.delete(String(req.params.id), req.userId!, req.userRole!);
+    res.json(result);
+  } catch (err) { next(err); }
+});

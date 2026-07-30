@@ -68,7 +68,7 @@ export const authService = {
         select: {
           id: true, email: true, username: true, displayName: true, role: true,
           avatarUrl: true, branch: true, year: true, bio: true,
-          emailVerified: true, createdAt: true,
+          emailVerified: true, onboardingCompleted: true, createdAt: true,
         },
       });
     } catch (err) {
@@ -118,7 +118,7 @@ export const authService = {
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
         avatarUrl: true, branch: true, year: true, bio: true,
-        emailVerified: true, passwordHash: true, isBanned: true, createdAt: true,
+        emailVerified: true, onboardingCompleted: true, passwordHash: true, isBanned: true, createdAt: true,
       },
     });
 
@@ -152,7 +152,7 @@ export const authService = {
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
         avatarUrl: true, branch: true, year: true, bio: true,
-        emailVerified: true, createdAt: true,
+        emailVerified: true, onboardingCompleted: true, createdAt: true,
         _count: { select: { posts: true, comments: true } },
       },
     });
@@ -163,7 +163,7 @@ export const authService = {
   // H-4: use typed UpdateProfileInput instead of Record<string, unknown>
   async updateProfile(userId: string, data: UpdateProfileInput) {
     // Explicitly pick only allowed fields to prevent privilege escalation (H-4)
-    const safeData: UpdateProfileInput = {};
+    const safeData: Record<string, unknown> = { onboardingCompleted: true };
     if (data.username !== undefined) {
       const existing = await prisma.user.findFirst({
         where: {
@@ -180,15 +180,15 @@ export const authService = {
     if (data.bio !== undefined) safeData.bio = data.bio;
     if (data.branch !== undefined) safeData.branch = data.branch;
     if (data.year !== undefined) safeData.year = data.year;
-    if (data.avatarUrl !== undefined) safeData.avatarUrl = data.avatarUrl;
+    if (data.avatarUrl !== undefined) safeData.avatarUrl = data.avatarUrl || null;
 
     return prisma.user.update({
       where: { id: userId },
-      data: safeData,
+      data: safeData as never,
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
         avatarUrl: true, branch: true, year: true, bio: true,
-        emailVerified: true, createdAt: true,
+        emailVerified: true, onboardingCompleted: true, createdAt: true,
       },
     });
   },
@@ -349,7 +349,7 @@ export const authService = {
           select: {
             id: true, email: true, username: true, displayName: true, role: true,
             avatarUrl: true, branch: true, year: true, bio: true,
-            emailVerified: true, createdAt: true,
+            emailVerified: true, onboardingCompleted: true, createdAt: true,
           },
         },
       },
@@ -362,7 +362,7 @@ export const authService = {
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
         avatarUrl: true, branch: true, year: true, bio: true,
-        emailVerified: true, createdAt: true,
+        emailVerified: true, onboardingCompleted: true, createdAt: true,
       },
     });
     if (existingUser) {
@@ -409,7 +409,7 @@ export const authService = {
         select: {
           id: true, email: true, username: true, displayName: true, role: true,
           avatarUrl: true, branch: true, year: true, bio: true,
-          emailVerified: true, createdAt: true,
+          emailVerified: true, onboardingCompleted: true, createdAt: true,
         },
       });
     } catch (err) {
@@ -423,7 +423,7 @@ export const authService = {
           select: {
             id: true, email: true, username: true, displayName: true, role: true,
             avatarUrl: true, branch: true, year: true, bio: true,
-            emailVerified: true, createdAt: true,
+            emailVerified: true, onboardingCompleted: true, createdAt: true,
           },
         });
         if (winner) {
