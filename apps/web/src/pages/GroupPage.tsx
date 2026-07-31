@@ -66,13 +66,16 @@ export function GroupPage() {
   const isSystemAdmin = user?.role === 'ADMIN';
   const isAdmin = community?.userRole === 'OWNER' || community?.userRole === 'MOD' || isSystemAdmin;
 
+  const [isJoining, setIsJoining] = useState(false);
+
   const toggleMembership = async () => {
     if (!isAuthenticated) {
       toast.error('Please sign in to join groups');
       return;
     }
-    if (!community) return;
+    if (!community || isJoining) return;
 
+    setIsJoining(true);
     try {
       if (isMember) {
         await api.leaveCommunity(community.id);
@@ -85,6 +88,8 @@ export function GroupPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to update membership';
       toast.error(msg);
+    } finally {
+      setIsJoining(false);
     }
   };
 

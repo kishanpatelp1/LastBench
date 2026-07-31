@@ -42,8 +42,8 @@ function CreateGroupModal({ onClose }: { onClose: () => void }) {
       toast.success(`Group g/${newGroup.slug} created! 🎉`);
       onClose();
       navigate(`/g/${newGroup.slug}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to create group');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create group');
     } finally {
       setIsSubmitting(false);
     }

@@ -20,16 +20,16 @@ notificationRoutes.get('/unread-count', requireAuth(), async (req, res, next) =>
   } catch (err) { next(err); }
 });
 
-notificationRoutes.post('/:id/read', requireAuth(), async (req, res, next) => {
+notificationRoutes.post('/read-all', requireAuth(), async (req, res, next) => {
   try {
-    await notificationService.markRead(String(req.params.id), req.userId!);
+    await notificationService.markAllRead(req.userId!);
     res.json({ success: true });
   } catch (err) { next(err); }
 });
 
-notificationRoutes.post('/read-all', requireAuth(), async (req, res, next) => {
+notificationRoutes.post('/:id/read', requireAuth(), async (req, res, next) => {
   try {
-    await notificationService.markAllRead(req.userId!);
+    await notificationService.markRead(String(req.params.id), req.userId!);
     res.json({ success: true });
   } catch (err) { next(err); }
 });

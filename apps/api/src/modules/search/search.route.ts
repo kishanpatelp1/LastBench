@@ -4,18 +4,22 @@ import { validate } from '../../middleware/validate.js';
 import { prisma } from '../../lib/prisma.js';
 import { getCache, setCache } from '../../lib/redis.js';
 
+import { optionalAuth } from '../../middleware/auth.middleware.js';
+
 export const searchRoutes: Router = Router();
 
-searchRoutes.get('/', validate(searchQuerySchema, 'query'), async (req, res, next) => {
+searchRoutes.get('/', optionalAuth(), validate(searchQuerySchema, 'query'), async (req, res, next) => {
   try {
     const { q, type, limit } = req.validated as { q: string; type: string; limit: number };
     
-    // Cache-aside pattern for frequent campus search queries (2 min TTL)
-    const cacheKey = `search:${type}:${q.toLowerCase().trim()}:${limit}`;
-    const cached = await getCache<Record<string, unknown>>(cacheKey);
-    if (cached) {
-      res.json({ success: true, data: cached });
-      return;
+    // Cache-aside pattern for frequent campus search queries (only cache for unauthenticated requests)
+    const cacheKey = !req.userId ? `search:${type}:${q.toLowerCase().trim()}:${limit}` : null;
+    if (cacheKey) {
+      const cached = await getCache<Record<string, unknown>>(cacheKey);
+      if (cached) {
+        res.json({ success: true, data: cached });
+        return;
+      }
     }
 
     const results: { posts?: unknown[]; communities?: unknown[] } = {};
@@ -40,13 +44,13 @@ searchRoutes.get('/', validate(searchQuerySchema, 'query'), async (req, res, nex
               options: {
                 include: {
                   _count: { select: { votes: true } },
-                  votes: (req as any).user ? { where: { userId: (req as any).user.id } } : false,
+                  votes: req.userId ? { where: { userId: req.userId } } : false,
                 },
                 orderBy: { orderNum: 'asc' },
               },
             },
           },
-          votes: (req as any).user ? { where: { userId: (req as any).user.id } } : false,
+          votes: req.userId ? { where: { userId: req.userId } } : false,
         },
       });
 
@@ -105,7 +109,7 @@ searchRoutes.get('/', validate(searchQuerySchema, 'query'), async (req, res, nex
       });
     }
 
-    await setCache(cacheKey, results, 120);
+    if (cacheKey) await setCache(cacheKey, results, 120);
     res.json({ success: true, data: results });
   } catch (err) { next(err); }
 });

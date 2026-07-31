@@ -84,8 +84,8 @@ export function PostCard({ post }: PostCardProps) {
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['post', post.id] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to vote');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to vote');
     }
   };
 
@@ -102,8 +102,8 @@ export function PostCard({ post }: PostCardProps) {
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['post', post.id] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to update poll vote');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update poll vote');
     }
   };
 
@@ -118,8 +118,8 @@ export function PostCard({ post }: PostCardProps) {
       toast.success('Post deleted');
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to delete post');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete post');
     } finally {
       setIsDeleting(false);
     }
@@ -155,8 +155,8 @@ export function PostCard({ post }: PostCardProps) {
     try {
       await api.reportPost(post.id, reason || 'Inappropriate content');
       toast.success('Post reported. Our moderators will review it shortly.');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to report post');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to report post');
     }
   };
 

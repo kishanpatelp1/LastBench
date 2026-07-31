@@ -55,8 +55,8 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
   }, [initialOpen]);
 
   const { data: groups } = useQuery({
-    queryKey: ['groups'],
-    queryFn: () => api.getCommunities().then((res) => res.items as unknown as Community[]),
+    queryKey: ['communities'],
+    queryFn: () => api.getCommunities({ limit: '50' }).then((res) => res.items as unknown as Community[]),
   });
 
   const [communityIdInitialized, setCommunityIdInitialized] = useState(false);
