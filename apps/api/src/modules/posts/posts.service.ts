@@ -5,6 +5,7 @@ import { moderationQueue } from '../../lib/queue.js';
 import type { CreatePostInput, FeedQuery, VoteInput } from '@lastbench/shared';
 import { Prisma } from '@prisma/client';
 import { sanitizeInput } from '../../lib/sanitize.js';
+import { formatPost } from './post.formatter.js';
 
 export const postService = {
   async create(authorId: string, input: CreatePostInput) {
@@ -23,7 +24,8 @@ export const postService = {
         communityId: input.communityId,
         title: input.title ? sanitizeInput(input.title) : undefined,
         content: sanitizeInput(input.content),
-        type: input.type ?? 'TEXT',
+        type: (input.type as any) ?? 'TEXT',
+        linkUrl: (input as any).linkUrl || null,
         isAnonymous: input.isAnonymous ?? true,
         mediaUrls: input.mediaUrls ?? [],
         tags: input.tags ?? [],
@@ -40,7 +42,7 @@ export const postService = {
               },
             }
           : undefined,
-      },
+      } as any,
       include: {
         author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
         community: { select: { id: true, name: true, slug: true, avatarUrl: true } },
@@ -54,15 +56,16 @@ export const postService = {
     // Invalidate feed caches
     await invalidateCache('feed:*');
 
-    return this.formatPost(post, authorId);
+    return formatPost(post, authorId);
   },
 
   async getFeed(query: FeedQuery, userId?: string) {
-    const { cursor, limit, sort, timeRange, communityId } = query;
+    const { cursor, limit, sort, timeRange, communityId, authorId, authorUsername } = query;
+    const effectiveTimeRange = timeRange || (authorId || authorUsername || communityId ? 'all' : 'week');
 
-    // M-8: Cache-aside — only cache anonymous, first-page, default-sort feeds
-    const cacheKey = !userId && !cursor
-      ? `feed:${sort}:${timeRange}:${communityId ?? 'all'}:${limit}`
+    // M-8: Cache-aside — only cache anonymous, first-page, default-sort feeds without specific author
+    const cacheKey = !userId && !cursor && !authorId && !authorUsername
+      ? `feed:${sort}:${effectiveTimeRange}:${communityId ?? 'all'}:${limit}`
       : null;
 
     if (cacheKey) {
@@ -73,8 +76,13 @@ export const postService = {
     // Build where clause
     const where: Record<string, unknown> = { isDeleted: false };
     if (communityId) where.communityId = communityId;
+    if (authorId) where.authorId = authorId;
+    if (authorUsername) {
+      where.author = { username: { equals: authorUsername, mode: 'insensitive' } };
+      where.isAnonymous = false;
+    }
 
-    if (timeRange !== 'all') {
+    if (effectiveTimeRange !== 'all') {
       const now = new Date();
       const ranges: Record<string, number> = {
         day: 1,
@@ -82,7 +90,7 @@ export const postService = {
         month: 30,
         year: 365,
       };
-      const days = ranges[timeRange] ?? 7;
+      const days = ranges[effectiveTimeRange] ?? 7;
       where.createdAt = { gte: new Date(now.getTime() - days * 24 * 60 * 60 * 1000) };
     }
 
@@ -109,7 +117,7 @@ export const postService = {
 
     const hasMore = posts.length > limit;
     const items = hasMore ? posts.slice(0, -1) : posts;
-    const formatted = items.map((post: (typeof items)[number]) => this.formatPost(post, userId));
+    const formatted = items.map((post: (typeof items)[number]) => formatPost(post, userId));
 
     const result = {
       items: formatted,
@@ -147,7 +155,7 @@ export const postService = {
     });
 
     if (!post) throw new AppError(404, 'Post not found');
-    return this.formatPost(post, userId);
+    return formatPost(post, userId);
   },
 
   async vote(postId: string, userId: string, input: VoteInput) {
@@ -209,28 +217,34 @@ export const postService = {
     const validOption = poll.options.find((o: (typeof poll.options)[number]) => o.id === optionId);
     if (!validOption) throw new AppError(400, 'Invalid poll option');
 
-    try {
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        // Check if already voted on any option in this poll
-        const existing = await tx.pollVote.findFirst({
-          where: {
-            userId,
-            option: { pollId: poll.id },
-          },
-        });
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const existing = await tx.pollVote.findFirst({
+        where: {
+          userId,
+          pollId: poll.id,
+        },
+      });
 
-        if (existing) throw new AppError(400, 'You have already voted on this poll');
-
+      if (existing) {
+        if (existing.optionId === optionId) {
+          // Toggle off / unselect vote
+          await tx.pollVote.delete({
+            where: { id: existing.id },
+          });
+        } else {
+          // Switch vote to the new option
+          await tx.pollVote.update({
+            where: { id: existing.id },
+            data: { optionId },
+          });
+        }
+      } else {
+        // Create new poll vote
         await tx.pollVote.create({
           data: { userId, optionId, pollId: poll.id },
         });
-      });
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        throw new AppError(400, 'You have already voted on this poll');
       }
-      throw err;
-    }
+    });
 
     return { success: true };
   },
@@ -250,65 +264,5 @@ export const postService = {
 
     await invalidateCache('feed:*');
     return { success: true };
-  },
-
-  // Helper to format post response
-  formatPost(post: Record<string, unknown>, userId?: string) {
-    const votes = (post as Record<string, unknown[]>).votes;
-    const userVote = Array.isArray(votes) && votes.length > 0
-      ? (votes[0] as Record<string, string>).type
-      : null;
-
-    const author = post.author as Record<string, unknown>;
-    const formattedAuthor = (post as Record<string, boolean>).isAnonymous
-      ? { id: 'anonymous', username: 'Anonymous', displayName: 'Anonymous', avatarUrl: null }
-      : author;
-
-    const poll = post.poll as Record<string, unknown> | null;
-    let formattedPoll = null;
-    if (poll) {
-      const options = poll.options as Array<Record<string, unknown>>;
-      const totalVotes = options.reduce((sum, o) => {
-        const count = (o._count as Record<string, number>)?.votes ?? 0;
-        return sum + count;
-      }, 0);
-
-      formattedPoll = {
-        id: poll.id,
-        expiresAt: poll.expiresAt,
-        totalVotes,
-        userVotedOptionId: null as string | null,
-        options: options.map((o) => {
-          const voteCount = (o._count as Record<string, number>)?.votes ?? 0;
-          const hasUserVoted = Array.isArray(o.votes) && o.votes.length > 0;
-          if (hasUserVoted) formattedPoll!.userVotedOptionId = o.id as string;
-          return {
-            id: o.id,
-            text: o.text,
-            voteCount,
-            percentage: totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0,
-          };
-        }),
-      };
-    }
-
-    return {
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      type: post.type,
-      isAnonymous: post.isAnonymous,
-      mediaUrls: post.mediaUrls,
-      tags: post.tags,
-      score: post.score,
-      commentCount: post.commentCount,
-      isPinned: post.isPinned,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
-      author: formattedAuthor,
-      community: post.community,
-      userVote,
-      poll: formattedPoll,
-    };
   },
 };

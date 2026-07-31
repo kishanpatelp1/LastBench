@@ -1,30 +1,29 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../middleware/error-handler.js';
-import { enqueueNotification } from '../../workers/index.js';
+import { notificationService } from '../notifications/notifications.service.js';
 import type { CreateCommentInput } from '@lastbench/shared';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { sanitizeInput } from '../../lib/sanitize.js';
+import { formatComment } from './comment.formatter.js';
 
 export const commentService = {
   async create(authorId: string, input: CreateCommentInput) {
-    const post = await prisma.post.findUnique({ where: { id: input.postId, isDeleted: false } });
-    if (!post) throw new AppError(404, 'Post not found');
+    const post = await prisma.post.findUnique({
+      where: { id: input.postId },
+      select: { authorId: true, isDeleted: true },
+    });
 
-    let depth = 0;
-    if (input.parentId) {
-      const parent = await prisma.comment.findUnique({ where: { id: input.parentId } });
-      if (!parent || parent.postId !== input.postId) throw new AppError(400, 'Invalid parent comment');
-      depth = parent.depth + 1;
+    if (!post || post.isDeleted) {
+      throw new AppError(404, 'Post not found');
     }
 
     const comment = await prisma.comment.create({
       data: {
-        authorId,
         postId: input.postId,
-        parentId: input.parentId ?? null,
+        authorId,
+        parentId: input.parentId,
         content: sanitizeInput(input.content),
         isAnonymous: input.isAnonymous ?? true,
-        depth,
       },
       include: {
         author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
@@ -38,7 +37,7 @@ export const commentService = {
 
     // M-9: Notify post author when someone comments (skip self-notifications)
     if (post.authorId && post.authorId !== authorId) {
-      await enqueueNotification(
+      await notificationService.create(
         post.authorId,
         'COMMENT',
         'New comment on your post',
@@ -54,7 +53,7 @@ export const commentService = {
         select: { authorId: true },
       });
       if (parent && parent.authorId !== authorId) {
-        await enqueueNotification(
+        await notificationService.create(
           parent.authorId,
           'REPLY',
           'New reply to your comment',
@@ -64,13 +63,15 @@ export const commentService = {
       }
     }
 
-    return this.formatComment(comment);
+    return formatComment(comment);
   },
 
-  async getByPost(postId: string, sort: string = 'best', cursor?: string, limit: number = 20) {
+  async getByPost(postId: string, sort: string = 'best', cursor?: string, limit: number = 20, userId?: string) {
     const orderBy = sort === 'new' ? [{ createdAt: 'desc' as const }]
       : sort === 'old' ? [{ createdAt: 'asc' as const }]
       : [{ score: 'desc' as const }, { createdAt: 'desc' as const }];
+
+    const voteInclude = userId ? { where: { userId }, select: { type: true } } as const : false;
 
     const comments = await prisma.comment.findMany({
       where: { postId, parentId: null, isDeleted: false },
@@ -80,6 +81,7 @@ export const commentService = {
       include: {
         author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
         _count: { select: { replies: true } },
+        votes: voteInclude,
         replies: {
           where: { isDeleted: false },
           take: 3,
@@ -87,6 +89,7 @@ export const commentService = {
           include: {
             author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
             _count: { select: { replies: true } },
+            votes: voteInclude,
           },
         },
       },
@@ -97,10 +100,10 @@ export const commentService = {
 
     return {
       items: items.map((c: (typeof items)[number]) => ({
-        ...this.formatComment(c),
+        ...formatComment(c),
         replyCount: c._count.replies,
         replies: c.replies.map((r: (typeof c.replies)[number]) => ({
-          ...this.formatComment(r),
+          ...formatComment(r),
           replyCount: (r as unknown as { _count: { replies: number } })._count.replies,
         })),
       })),
@@ -110,68 +113,70 @@ export const commentService = {
   },
 
   async vote(commentId: string, userId: string, type: 'UP' | 'DOWN') {
-    // C-3: Atomic transaction prevents double-vote race conditions
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+    if (!comment || comment.isDeleted) throw new AppError(404, 'Comment not found');
+
+    const value = type === 'UP' ? 1 : -1;
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const existing = await tx.vote.findUnique({
         where: { userId_commentId: { userId, commentId } },
       });
 
-      let scoreDelta = 0;
       if (existing) {
         if (existing.type === type) {
-          await tx.vote.delete({ where: { id: existing.id } });
-          scoreDelta = type === 'UP' ? -1 : 1;
+          // Toggle off
+          await tx.vote.delete({
+            where: { userId_commentId: { userId, commentId } },
+          });
+          await tx.comment.update({
+            where: { id: commentId },
+            data: { score: { decrement: value } },
+          });
         } else {
-          await tx.vote.update({ where: { id: existing.id }, data: { type } });
-          scoreDelta = type === 'UP' ? 2 : -2;
+          // Switch vote
+          await tx.vote.update({
+            where: { userId_commentId: { userId, commentId } },
+            data: { type },
+          });
+          await tx.comment.update({
+            where: { id: commentId },
+            data: { score: { increment: value * 2 } },
+          });
         }
       } else {
-        await tx.vote.create({ data: { userId, commentId, type } });
-        scoreDelta = type === 'UP' ? 1 : -1;
+        // New vote
+        await tx.vote.create({
+          data: { userId, commentId, type },
+        });
+        await tx.comment.update({
+          where: { id: commentId },
+          data: { score: { increment: value } },
+        });
       }
-
-      const updated = await tx.comment.update({
-        where: { id: commentId },
-        data: { score: { increment: scoreDelta } },
-        select: { score: true },
-      });
-
-      return { commentId, score: updated.score };
-    });
-
-    return result;
-  },
-
-  async delete(commentId: string, userId: string, role: string) {
-    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
-    if (!comment) throw new AppError(404, 'Comment not found');
-
-    if (comment.authorId !== userId && role !== 'ADMIN' && role !== 'MODERATOR') {
-      throw new AppError(403, 'Not authorized');
-    }
-
-    await prisma.comment.update({
-      where: { id: commentId },
-      data: { isDeleted: true, content: '[deleted]' },
     });
 
     return { success: true };
   },
 
-  formatComment(comment: Record<string, unknown>) {
-    const isAnon = comment.isAnonymous as boolean;
-    const author = comment.author as Record<string, unknown>;
-    return {
-      id: comment.id,
-      content: comment.content,
-      isAnonymous: isAnon,
-      score: comment.score,
-      depth: comment.depth,
-      createdAt: comment.createdAt,
-      author: isAnon
-        ? { id: 'anonymous', username: 'Anonymous', displayName: 'Anonymous', avatarUrl: null }
-        : author,
-      userVote: null,
-    };
+  async delete(commentId: string, userId: string, role: string) {
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+    if (!comment || comment.isDeleted) throw new AppError(404, 'Comment not found');
+
+    if (comment.authorId !== userId && role !== 'ADMIN' && role !== 'MODERATOR') {
+      throw new AppError(403, 'Not authorized to delete this comment');
+    }
+
+    await prisma.comment.update({
+      where: { id: commentId },
+      data: { isDeleted: true },
+    });
+
+    await prisma.post.update({
+      where: { id: comment.postId },
+      data: { commentCount: { decrement: 1 } },
+    });
+
+    return { success: true };
   },
 };

@@ -1,239 +1,423 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api-client';
-import { PostCard } from '../components/feed/PostCard';
-import { motion } from 'framer-motion';
-import { Users, Calendar } from 'lucide-react';
-import { formatNumber, timeAgo } from '../lib/utils';
+import { Users, Calendar, Settings, Crown, Shield, SortAsc } from 'lucide-react';
 import { toast } from 'sonner';
-import { Community, Post } from '../types';
+
+import { api } from '../lib/api-client';
 import { useAuthStore } from '../stores/auth-store';
+import { PostCard } from '../components/feed/PostCard';
+import { PostComposer } from '../components/feed/PostComposer';
+import { GroupSettingsModal } from '../components/groups/GroupSettingsModal';
+import { Community, CommunityMember } from '../types';
+
+type Tab = 'POSTS' | 'MEMBERS';
+type SortOption = 'hot' | 'new' | 'top';
 
 export function GroupPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'posts' | 'members'>('posts');
+  const { user, isAuthenticated } = useAuthStore();
 
-  const { data: community, isLoading: loadingCommunity } = useQuery<Community>({
+  const [activeTab, setActiveTab] = useState<Tab>('POSTS');
+  const [sort, setSort] = useState<SortOption>('hot');
+  const [showSettings, setShowSettings] = useState(false);
+
+  const { data: community, isLoading: isCommunityLoading } = useQuery({
     queryKey: ['community', slug],
-    queryFn: () => api.getCommunity(slug!) as unknown as Promise<Community>,
+    queryFn: () => api.getCommunity(slug!),
     enabled: !!slug,
   });
 
-  const { data: postsData, isLoading: loadingPosts } = useInfiniteQuery({
-    queryKey: ['feed', 'community', community?.id],
+  const {
+    data: postsData,
+    isLoading: isPostsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['feed', community?.id, sort],
     queryFn: ({ pageParam }) =>
-      api.getFeed({ sort: 'new', communityId: community?.id as string, limit: '20', ...(pageParam ? { cursor: pageParam } : {}) }),
-    getNextPageParam: (last) => last.nextCursor,
+      api.getFeed({ communityId: community!.id, sort, ...(pageParam ? { cursor: pageParam } : {}), limit: '15' }),
     initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!community?.id,
   });
 
-  const { data: members, isLoading: loadingMembers } = useQuery({
-    queryKey: ['community', 'members', community?.id],
-    queryFn: () => api.getCommunityMembers(community?.id as string),
-    enabled: !!community?.id && activeTab === 'members',
+  const {
+    data: membersData,
+    isLoading: isMembersLoading,
+    fetchNextPage: fetchNextMembersPage,
+    hasNextPage: hasNextMembersPage,
+    isFetchingNextPage: isFetchingNextMembersPage,
+  } = useInfiniteQuery({
+    queryKey: ['community', slug, 'members'],
+    queryFn: ({ pageParam }) =>
+      api.getCommunityMembers(slug!, { limit: '20', ...(pageParam ? { cursor: pageParam } : {}) }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled: !!slug && activeTab === 'MEMBERS',
   });
 
-  const posts = (postsData?.pages.flatMap((p) => p.items) ?? []) as unknown as Post[];
+  const posts = postsData?.pages.flatMap((p) => p.items) ?? [];
+  const members = membersData?.pages.flatMap((p) => (p.items || []) as unknown as CommunityMember[]) ?? [];
+  const isMember = community?.isMember ?? false;
+  const isSystemAdmin = user?.role === 'ADMIN';
+  const isAdmin = community?.userRole === 'OWNER' || community?.userRole === 'MOD' || isSystemAdmin;
 
-  if (loadingCommunity) {
+  const toggleMembership = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to join groups');
+      return;
+    }
+    if (!community) return;
+
+    try {
+      if (isMember) {
+        await api.leaveCommunity(community.id);
+        toast.success(`Left ${community.name}`);
+      } else {
+        await api.joinCommunity(community.id);
+        toast.success(`Joined ${community.name}!`);
+      }
+      queryClient.invalidateQueries({ queryKey: ['community', slug] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update membership';
+      toast.error(msg);
+    }
+  };
+
+  if (isCommunityLoading) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6 pb-20 md:pb-6">
-        <div className="skeleton h-56 rounded-2xl bg-card border border-border" />
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-40 rounded-2xl bg-card border border-border" />
-          ))}
-        </div>
+      <div className="max-w-[1240px] mx-auto px-4 py-8 space-y-3">
+        <div className="bg-card border border-border rounded-md h-32 animate-pulse" />
+        <div className="bg-card border border-border rounded-md h-64 animate-pulse" />
       </div>
     );
   }
 
   if (!community) {
     return (
-      <div className="text-center py-20 max-w-md mx-auto space-y-4">
-        <p className="text-5xl mb-2">🔍</p>
-        <h2 className="text-xl font-bold text-foreground">Group not found</h2>
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          The community /g/{slug} doesn&apos;t exist on campus yet or may have been removed.
-        </p>
-        <div className="pt-2 flex justify-center gap-3">
-          <Link
-            to="/groups"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold text-sm shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all cursor-pointer"
-          >
-            Explore All Groups
-          </Link>
-        </div>
+      <div className="max-w-[1240px] mx-auto px-4 py-16 text-center">
+        <h2 className="text-xl font-bold mb-2">Group Not Found</h2>
+        <p className="text-muted-foreground mb-4 text-sm">No group exists at g/{slug}</p>
+        <button onClick={() => navigate(-1)} className="text-primary hover:underline text-sm">
+          ← Go Back
+        </button>
       </div>
     );
   }
 
-  const handleJoinToggle = async () => {
-    if (!isAuthenticated) {
-      toast.error('Please login to join groups');
-      navigate('/login');
-      return;
-    }
-    
-    // Optimistic UI update
-    const previousCommunity = queryClient.getQueryData(['community', slug]);
-    const isCurrentlyMember = community.isMember;
-    
-    queryClient.setQueryData(['community', slug], (old: any) => {
-      if (!old) return old;
-      return {
-        ...old,
-        isMember: !isCurrentlyMember,
-        memberCount: isCurrentlyMember ? old.memberCount - 1 : old.memberCount + 1,
-      };
-    });
-
-    try {
-      if (isCurrentlyMember) {
-        await api.leaveCommunity(community.id);
-        toast.success('Left group');
-      } else {
-        await api.joinCommunity(community.id);
-        toast.success('Joined group! 🎉');
-      }
-    } catch (err) {
-      toast.error(isCurrentlyMember ? 'Failed to leave' : 'Failed to join');
-      // Revert optimistic update
-      queryClient.setQueryData(['community', slug], previousCommunity);
-    }
-  };
-
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20 md:pb-6">
-      {/* Group Header */}
-      <div className="rounded-2xl bg-card border border-border overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-violet-600 to-fuchsia-600" />
-        <div className="p-5 -mt-8">
-          <div className="flex items-end justify-between">
-            <div className="flex items-end gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-2xl font-black shadow-xl border-4 border-card">
-                {community.name?.[0]}
-              </div>
-              <div className="pb-1">
-                <h1 className="text-2xl font-bold text-foreground">{community.name}</h1>
-                <p className="text-sm text-muted-foreground">/g/{community.slug}</p>
-              </div>
+    <div className="max-w-[1240px] mx-auto px-4 py-4 flex gap-6">
+      {/* ─── MAIN COLUMN ───────────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-3">
+
+        {/* Group Header Card */}
+        <div className="bg-card border border-border rounded-md overflow-hidden">
+          {/* Banner */}
+          <div
+            className="h-20 relative"
+            style={{
+              background: community.bannerUrl
+                ? `url(${community.bannerUrl}) center/cover no-repeat`
+                : 'linear-gradient(135deg, hsl(var(--primary)/0.25) 0%, hsl(var(--primary)/0.05) 100%)',
+            }}
+          />
+
+          <div className="px-4 pb-3 -mt-6 flex items-end gap-3">
+            {/* Group avatar */}
+            <div className="w-14 h-14 rounded-lg border-2 border-card shadow-sm overflow-hidden shrink-0 bg-primary">
+              {community.avatarUrl ? (
+                <img src={community.avatarUrl} alt={community.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-primary-foreground font-bold text-xl">
+                  {community.name[0]}
+                </div>
+              )}
             </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleJoinToggle}
-              className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                community.isMember 
-                  ? 'bg-secondary text-foreground hover:bg-secondary/80 border border-border'
-                  : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25'
-              }`}
-            >
-              {community.isMember ? 'Joined' : 'Join'}
-            </motion.button>
-          </div>
 
-          {community.description && (
-            <p className="text-sm text-muted-foreground mt-4">{community.description}</p>
-          )}
+            <div className="flex-1 min-w-0 pt-6">
+              <h1 className="text-lg font-bold text-foreground leading-tight">{community.name}</h1>
+              <p className="text-xs text-muted-foreground font-medium">g/{community.slug}</p>
+            </div>
 
-          <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Users size={14} />{formatNumber(community.memberCount)} members</span>
-            <span className="flex items-center gap-1.5"><Calendar size={14} />Created {timeAgo(community.createdAt)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 p-1 bg-secondary/50 rounded-xl border border-border w-fit">
-        <button
-          onClick={() => setActiveTab('posts')}
-          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'posts'
-              ? 'bg-card text-foreground shadow-sm border border-border/50'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Posts
-        </button>
-        <button
-          onClick={() => setActiveTab('members')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'members'
-              ? 'bg-card text-foreground shadow-sm border border-border/50'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Users size={15} />
-          Members
-          <span className="px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary">{formatNumber(community.memberCount)}</span>
-        </button>
-      </div>
-
-      {/* Content */}
-      {activeTab === 'posts' ? (
-        loadingPosts ? (
-          <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className="skeleton h-48 rounded-2xl" />)}</div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12"><p className="text-muted-foreground">No posts in this group yet.</p></div>
-        ) : (
-          <div className="space-y-4">
-            {posts.map((post) => <PostCard key={post.id} post={post} />)}
-          </div>
-        )
-      ) : loadingMembers ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="skeleton h-16 rounded-xl bg-card border border-border" />
-          ))}
-        </div>
-      ) : !members || members.length === 0 ? (
-        <div className="text-center py-12 bg-card rounded-2xl border border-border p-8">
-          <Users size={36} className="text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground font-medium">No members found.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {members.map((m: any) => {
-            const u = m.user || {};
-            return (
-              <div
-                key={m.id}
-                className="p-4 rounded-xl bg-card border border-border flex items-center justify-between hover:border-primary/30 transition-colors"
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 shrink-0 pt-6">
+              {isAdmin && (
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="p-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                  title="Group settings"
+                >
+                  <Settings size={15} />
+                </button>
+              )}
+              <button
+                onClick={toggleMembership}
+                className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors cursor-pointer ${
+                  isMember
+                    ? 'border-border text-foreground hover:bg-secondary hover:text-destructive hover:border-destructive/50'
+                    : 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90'
+                }`}
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="relative">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-base shadow-sm">
-                      {u.displayName?.[0]?.toUpperCase() ?? u.username?.[0]?.toUpperCase() ?? 'U'}
-                    </div>
+                {isMember ? 'Joined ✓' : 'Join'}
+              </button>
+            </div>
+          </div>
+
+          {/* Category / meta strip */}
+          {community.category && (
+            <div className="px-4 pb-3 flex items-center gap-2">
+              <span className="text-xs bg-secondary border border-border text-muted-foreground px-2 py-0.5 rounded-full capitalize">
+                {community.category}
+              </span>
+              {community.userRole === 'OWNER' && (
+                <span className="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Crown size={10} /> Owner
+                </span>
+              )}
+              {community.userRole === 'MOD' && (
+                <span className="text-xs bg-primary/10 border border-primary/30 text-primary px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Shield size={10} /> Moderator
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Tab bar + Sort */}
+        <div className="flex items-center justify-between">
+          <div className="flex bg-card border border-border rounded-md overflow-hidden">
+            {(['POSTS', 'MEMBERS'] as Tab[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-medium transition-colors cursor-pointer capitalize ${
+                  activeTab === tab
+                    ? 'bg-secondary text-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                {tab === 'POSTS' ? 'Posts' : `Members (${community.memberCount})`}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'POSTS' && (
+            <div className="flex items-center gap-1 bg-card border border-border rounded-md p-0.5">
+              <SortAsc size={13} className="text-muted-foreground ml-1.5" />
+              {(['hot', 'new', 'top'] as SortOption[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSort(s)}
+                  className={`px-3 py-1 text-xs font-semibold rounded transition-colors cursor-pointer capitalize ${
+                    sort === s ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Posts tab */}
+        {activeTab === 'POSTS' && (
+          <div className="space-y-2">
+            {isMember && isAuthenticated && (
+              <PostComposer communityId={community.id} />
+            )}
+            {!isMember && isAuthenticated && (
+              <div className="bg-card border border-border rounded-md px-4 py-3 text-sm text-muted-foreground flex items-center justify-between">
+                <span>Join this group to post and comment</span>
+                <button onClick={toggleMembership} className="text-xs font-semibold text-primary hover:underline cursor-pointer">
+                  Join now →
+                </button>
+              </div>
+            )}
+
+            {isPostsLoading
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-card border border-border rounded-md h-28 animate-pulse" />
+                ))
+              : posts.length === 0
+              ? (
+                <div className="bg-card border border-border rounded-md py-16 flex flex-col items-center gap-2 text-muted-foreground">
+                  <p className="text-sm font-medium">No posts yet</p>
+                  <p className="text-xs">Be the first to share something in {community.name}!</p>
+                </div>
+              )
+              : posts.map((post) => <PostCard key={post.id} post={post} />)
+            }
+
+            {hasNextPage && (
+              <button
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="w-full py-2.5 bg-card border border-border text-sm font-medium text-foreground rounded-md hover:bg-secondary transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load more posts'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Members tab */}
+        {activeTab === 'MEMBERS' && (
+          <div className="bg-card border border-border rounded-md overflow-hidden">
+            {isMembersLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0 animate-pulse">
+                  <div className="w-8 h-8 rounded-full bg-secondary" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-secondary rounded w-1/3" />
+                    <div className="h-2.5 bg-secondary rounded w-1/4" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground text-sm">
-                        {u.displayName || u.username || 'Campus Student'}
+                </div>
+              ))
+            ) : members.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">No members yet</div>
+            ) : (
+              members.map((member) => (
+                <div key={member.id} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-secondary/30 transition-colors">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">
+                    {member.user?.avatarUrl ? (
+                      <img src={member.user.avatarUrl} alt={member.user.username} className="w-full h-full object-cover" />
+                    ) : (
+                      (member.user?.displayName?.[0] || member.user?.username?.[0] || 'U').toUpperCase()
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-foreground">
+                        {member.user.displayName || member.user.username}
                       </span>
-                      {u.username && <span className="text-xs text-muted-foreground font-medium">u/{u.username}</span>}
-                      {(u.role === 'ADMIN' || u.role === 'MODERATOR') && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase tracking-wider border border-amber-500/20">
-                          {u.role}
+                      <span className="text-xs text-muted-foreground">u/{member.user.username}</span>
+                      {/* Role badges */}
+                      {member.role === 'OWNER' && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-0.5">
+                          <Crown size={9} /> Owner
+                        </span>
+                      )}
+                      {member.role === 'MOD' && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 flex items-center gap-0.5">
+                          <Shield size={9} /> Mod
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
-                      <span>{u.branch || 'Student'}{u.year ? ` • Year ${u.year}` : ''}</span>
-                      <span>•</span>
-                      <span>Joined {timeAgo(m.joinedAt)}</span>
-                    </div>
+                    {(member.user.branch || member.user.year) && (
+                      <p className="text-xs text-muted-foreground">
+                        {member.user.branch}{member.user.branch && member.user.year ? ' · ' : ''}{member.user.year ? `Year ${member.user.year}` : ''}
+                      </p>
+                    )}
                   </div>
                 </div>
+              ))
+            )}
+
+            {hasNextMembersPage && (
+              <div className="p-3 border-t border-border bg-secondary/20 text-center">
+                <button
+                  onClick={() => fetchNextMembersPage()}
+                  disabled={isFetchingNextMembersPage}
+                  className="w-full py-2 bg-card border border-border text-xs font-semibold text-foreground rounded-md hover:bg-secondary transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {isFetchingNextMembersPage ? 'Loading...' : 'Load More Members'}
+                </button>
               </div>
-            );
-          })}
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ─── SIDEBAR ─────────────────────────────────────── */}
+      <aside className="hidden lg:block w-72 flex-shrink-0 sticky top-16 self-start space-y-3">
+        {/* About */}
+        <div className="bg-card border border-border rounded-md overflow-hidden">
+          <div className="px-3 py-2.5 border-b border-border font-semibold text-sm">About g/{community.slug}</div>
+          <div className="p-3 space-y-3">
+            {community.description && (
+              <p className="text-sm text-muted-foreground leading-relaxed">{community.description}</p>
+            )}
+
+            <div className="flex gap-4 text-center">
+              <div className="flex-1">
+                <div className="text-base font-bold text-foreground">{community.memberCount.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                  <Users size={11} /> Members
+                </div>
+              </div>
+              <div className="w-px bg-border" />
+              <div className="flex-1">
+                <div className="text-base font-bold text-foreground">
+                  {new Date(community.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                </div>
+                <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                  <Calendar size={11} /> Created
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full h-px bg-border" />
+
+            {isAuthenticated ? (
+              <button
+                onClick={toggleMembership}
+                className={`w-full py-2 rounded-full text-sm font-semibold border transition-colors cursor-pointer ${
+                  isMember
+                    ? 'border-border text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40'
+                    : 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90'
+                }`}
+              >
+                {isMember ? 'Leave Group' : 'Join Group'}
+              </button>
+            ) : (
+              <p className="text-center text-xs text-muted-foreground">Sign in to join and post</p>
+            )}
+          </div>
         </div>
+
+        {/* Rules */}
+        {community.rules && community.rules.length > 0 && (
+          <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="px-3 py-2.5 border-b border-border font-semibold text-sm">Group Rules</div>
+            <div className="divide-y divide-border">
+              {community.rules.map((rule, idx) => (
+                <div key={rule.id} className="px-3 py-2.5">
+                  <p className="text-xs font-semibold text-foreground">{idx + 1}. {rule.title}</p>
+                  {rule.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{rule.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Admin Panel shortcut */}
+        {isAdmin && (
+          <div className="bg-card border border-border rounded-md p-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Admin Tools</p>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-secondary hover:bg-secondary/80 text-sm font-medium text-foreground transition-colors cursor-pointer"
+            >
+              <Settings size={14} />
+              Group Settings
+            </button>
+          </div>
+        )}
+      </aside>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <GroupSettingsModal
+          community={community as unknown as Community}
+          onClose={() => setShowSettings(false)}
+        />
       )}
     </div>
   );

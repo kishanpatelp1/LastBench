@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Eye, EyeOff, X, BarChart3, Plus, Trash2, Image as ImageIcon, Loader } from 'lucide-react';
+import { Send, Eye, EyeOff, X, BarChart3, Plus, Trash2, Image as ImageIcon, Loader, Shield, Sparkles, PenSquare, Search, Users, ChevronDown, Check, Link as LinkIcon, Video, Film, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api-client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/auth-store';
@@ -19,27 +19,76 @@ interface ConfettiParticle {
   targetY: number;
 }
 
-export function PostComposer() {
+interface PostComposerProps {
+  communityId?: string;
+  onClose?: () => void;
+  initialOpen?: boolean;
+}
+
+export function PostComposer({ communityId: initialCommunityId, onClose, initialOpen = false }: PostComposerProps = {}) {
   const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [communityId, setCommunityId] = useState('');
-  const [postType, setPostType] = useState<'TEXT' | 'IMAGE' | 'POLL'>('TEXT');
+  const [communityId, setCommunityId] = useState(initialCommunityId || '');
+  const [groupSearch, setGroupSearch] = useState('');
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
+  const [postType, setPostType] = useState<'TEXT' | 'IMAGE' | 'POLL' | 'LINK' | 'VIDEO'>('TEXT');
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const [selectedImages, setSelectedImages] = useState<Array<{ url: string; file: File }>>([]);
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; file?: File } | null>(null);
   const [confettiParticles, setConfettiParticles] = useState<ConfettiParticle[]>([]);
+
+  useEffect(() => {
+    if (initialOpen) setIsOpen(true);
+  }, [initialOpen]);
 
   const { data: groups } = useQuery({
     queryKey: ['groups'],
     queryFn: () => api.getCommunities().then((res) => res.items as unknown as Community[]),
   });
+
+  const [communityIdInitialized, setCommunityIdInitialized] = useState(false);
+  useEffect(() => {
+    if (!communityIdInitialized && !initialCommunityId && groups && groups.length > 0) {
+      const defaultGroup = groups.find((g: any) => g.isDefault) || groups[0];
+      if (defaultGroup) setCommunityId(defaultGroup.id);
+      setCommunityIdInitialized(true);
+    }
+  }, [groups, communityIdInitialized, initialCommunityId]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsGroupDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedGroup = useMemo(() => {
+    if (!communityId) return null;
+    return groups?.find((g) => g.id === communityId) ?? null;
+  }, [groups, communityId]);
+
+  const filteredGroups = useMemo(() => {
+    if (!groups) return [];
+    if (!groupSearch.trim()) return groups;
+    const q = groupSearch.toLowerCase().trim();
+    return groups.filter((g) => g.name.toLowerCase().includes(q) || g.slug.toLowerCase().includes(q));
+  }, [groups, groupSearch]);
 
   const triggerConfetti = () => {
     const colors = ['#8B5CF6', '#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
@@ -69,60 +118,96 @@ export function PostComposer() {
   };
 
   const addOption = () => {
-    if (pollOptions.length < 6) {
-      setPollOptions([...pollOptions, '']);
-    }
+    if (pollOptions.length < 6) setPollOptions([...pollOptions, '']);
   };
 
   const removeOption = (index: number) => {
-    if (pollOptions.length > 2) {
-      const next = pollOptions.filter((_, i) => i !== index);
-      setPollOptions(next);
-    }
+    if (pollOptions.length > 2) setPollOptions(pollOptions.filter((_, i) => i !== index));
   };
 
-  const handleImageSelect = async (files: FileList | null) => {
-    if (!files) return;
-    
-    const validFiles = Array.from(files).filter(f => {
-      if (!f.type.startsWith('image/')) {
-        toast.error(`${f.name} is not an image`);
-        return false;
-      }
-      if (f.size > 5 * 1024 * 1024) {
-        toast.error(`${f.name} is too large (max 5MB)`);
-        return false;
-      }
-      return true;
-    });
-
-    if (selectedImages.length + validFiles.length > 4) {
-      toast.error('Maximum 4 images per post');
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    if (selectedImages.length + files.length > 4) {
+      toast.error('You can upload at most 4 images per post');
       return;
     }
 
     setIsUploading(true);
     try {
-      for (const file of validFiles) {
-        const response = await api.uploadFile(file);
-        setSelectedImages(prev => [...prev, { url: response.url, file }]);
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+          toast.error(`${file.name} is not an image`);
+          continue;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`${file.name} is larger than 5MB`);
+          continue;
+        }
+        const res = await api.uploadFile(file);
+        setSelectedImages((prev) => [...prev, { url: res.url, file }]);
       }
       setPostType('IMAGE');
-      toast.success(`${validFiles.length} image(s) uploaded!`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload image');
+    } catch (err: any) {
+      toast.error(err.message || 'Image upload failed');
     } finally {
       setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      toast.error('Please select a valid video file');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Video must be less than 50MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const res = await api.uploadFile(file);
+      setSelectedVideo({ url: res.url, file });
+      setPostType('VIDEO');
+    } catch (err: any) {
+      toast.error(err.message || 'Video upload failed');
+    } finally {
+      setIsUploading(false);
+      if (videoInputRef.current) videoInputRef.current.value = '';
     }
   };
 
   const removeImage = (index: number) => {
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+    if (selectedImages.length === 1) setPostType('TEXT');
+  };
+
+  const resetForm = () => {
+    setContent('');
+    setTitle('');
+    setLinkUrl('');
+    setIsAnonymous(false);
+    setPostType('TEXT');
+    setPollOptions(['', '']);
+    setSelectedImages([]);
+    setSelectedVideo(null);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose?.();
   };
 
   const handleSubmit = async () => {
-    if (!content.trim() || !communityId) {
-      toast.error('Please fill in content and select a group');
+    const targetCommunityId = communityId || groups?.find((g: any) => g.isDefault)?.id || groups?.[0]?.id;
+
+    if (!content.trim() || !targetCommunityId) {
+      toast.error('Please enter post content');
       return;
     }
 
@@ -131,18 +216,36 @@ export function PostComposer() {
       return;
     }
 
+    if (postType === 'VIDEO' && !selectedVideo) {
+      toast.error('Please select a video file');
+      return;
+    }
+
+    if (postType === 'LINK' && !linkUrl.trim()) {
+      toast.error('Please enter an external URL link');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload: Record<string, unknown> = {
         content: content.trim(),
         title: title.trim() || undefined,
-        communityId,
+        communityId: targetCommunityId,
         isAnonymous,
         type: postType,
       };
 
+      if (postType === 'LINK' && linkUrl.trim()) {
+        payload.linkUrl = linkUrl.trim();
+      }
+
       if (postType === 'IMAGE') {
-        payload.mediaUrls = selectedImages.map(img => img.url);
+        payload.mediaUrls = selectedImages.map((img) => img.url);
+      }
+
+      if (postType === 'VIDEO' && selectedVideo) {
+        payload.mediaUrls = [selectedVideo.url];
       }
 
       if (postType === 'POLL') {
@@ -152,101 +255,84 @@ export function PostComposer() {
           setIsSubmitting(false);
           return;
         }
-        payload.poll = {
-          options: filteredOptions,
-        };
+        payload.poll = { options: filteredOptions };
       }
 
       await api.createPost(payload);
-      setContent('');
-      setTitle('');
-      setPostType('TEXT');
-      setPollOptions(['', '']);
-      setSelectedImages([]);
-      setIsOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['feed'] });
       triggerConfetti();
-      toast.success('Post created! 🎉');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create post');
+      toast.success('Post created successfully!');
+      resetForm();
+      handleClose();
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to create post');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="relative rounded-2xl bg-gradient-to-br from-violet-900/10 via-card to-fuchsia-900/10 border border-violet-500/20 p-6 overflow-hidden shadow-xl shadow-violet-500/5">
-        <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-violet-500/10 blur-2xl pointer-events-none" />
-        <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-fuchsia-500/10 blur-2xl pointer-events-none" />
-        
-        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <div className="space-y-1.5 flex-1">
-            <h3 className="text-lg font-extrabold tracking-tight text-foreground flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-lastbench" />
-              Join the Campus Conversation
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-              Log in or create an account to start creating posts, casting poll votes, and sharing discussions across campus.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
-            <button
-              onClick={() => navigate('/login')}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => navigate('/register')}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-bold shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all cursor-pointer"
-            >
-              Get Started
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!isAuthenticated) return null;
 
   return (
-    <div className="relative rounded-2xl bg-card border border-border overflow-hidden">
-      {/* Confetti Explosion */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
+    <div className="bg-card border border-border rounded-xl shadow-md overflow-hidden relative">
+      {/* Confetti Container */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
         {confettiParticles.map((p) => (
           <motion.div
             key={p.id}
-            initial={{ x: 0, y: 0, scale: 1, rotate: 0, opacity: 1 }}
+            initial={{ x: '50%', y: '50%', scale: 1, rotate: 0, opacity: 1 }}
             animate={{
-              x: p.targetX,
-              y: p.targetY,
-              rotate: p.rotation + 360,
-              opacity: 0,
+              x: `calc(50% + ${p.targetX}px)`,
+              y: `calc(50% + ${p.targetY}px)`,
               scale: 0.2,
+              rotate: p.rotation,
+              opacity: 0,
             }}
-            transition={{ duration: 1.2 + Math.random() * 0.8, ease: 'easeOut' }}
+            transition={{ duration: 1.8, ease: [0.25, 1, 0.5, 1] }}
             style={{
               position: 'absolute',
               width: p.size,
               height: p.size,
               backgroundColor: p.color,
-              borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-              zIndex: 50,
+              borderRadius: p.size > 8 ? '2px' : '50%',
             }}
           />
         ))}
       </div>
+
       {/* Collapsed state */}
       {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="w-full p-4 flex items-center gap-3 hover:bg-secondary/50 transition-colors cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold">
-            {user?.displayName?.[0]?.toUpperCase() ?? user?.username?.[0]?.toUpperCase() ?? '?'}
+        <div className="p-3">
+          <div className="flex items-center gap-3">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full object-cover border border-border flex-shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold flex-shrink-0">
+                {user?.displayName?.[0]?.toUpperCase() ?? user?.username?.[0]?.toUpperCase() ?? 'U'}
+              </div>
+            )}
+            <button
+              onClick={() => setIsOpen(true)}
+              className="flex-1 text-left px-4 py-2 bg-secondary rounded-full text-sm text-muted-foreground hover:bg-secondary/80 transition-colors font-medium flex items-center gap-2 cursor-pointer"
+            >
+              <PenSquare size={14} className="text-primary" />
+              <span>Create a post or share something with campus...</span>
+            </button>
+            <button onClick={() => { setIsOpen(true); setPostType('IMAGE'); }} className="p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Add image">
+              <ImageIcon size={18} />
+            </button>
+            <button onClick={() => { setIsOpen(true); setPostType('VIDEO'); }} className="p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Add video">
+              <Video size={18} />
+            </button>
+            <button onClick={() => { setIsOpen(true); setPostType('LINK'); }} className="p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Embed link">
+              <LinkIcon size={18} />
+            </button>
+            <button onClick={() => { setIsOpen(true); setPostType('POLL'); }} className="p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Create poll">
+              <BarChart3 size={18} />
+            </button>
           </div>
-          <span className="text-muted-foreground text-sm">What's on your mind?</span>
-        </button>
+        </div>
       )}
 
       {/* Expanded state */}
@@ -257,207 +343,427 @@ export function PostComposer() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="p-5 space-y-4"
+            className="flex flex-col"
           >
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Create Post</h3>
-              <button onClick={() => setIsOpen(false)} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground cursor-pointer">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-primary" />
+                <h3 className="text-sm font-bold text-foreground">Create a Post</h3>
+              </div>
+              <button onClick={handleClose} className="p-1 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer transition-colors">
                 <X size={18} />
               </button>
             </div>
 
-            {/* Post Type Selector */}
-            <div className="flex border-b border-border">
-              <button
-                type="button"
-                onClick={() => setPostType('TEXT')}
-                className={`flex-1 pb-2 text-center text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-                  postType === 'TEXT'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Text Post
-              </button>
-              <button
-                type="button"
-                onClick={() => setPostType('IMAGE')}
-                className={`flex-1 pb-2 text-center text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-                  postType === 'IMAGE'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Photo
-              </button>
-              <button
-                type="button"
-                onClick={() => setPostType('POLL')}
-                className={`flex-1 pb-2 text-center text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-                  postType === 'POLL'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Poll
-              </button>
-            </div>
-
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title (optional)"
-              className="w-full px-4 py-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-            />
-
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={postType === 'POLL' ? 'Ask a question...' : 'Share your thoughts...'}
-              rows={4}
-              className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
-            />
-
-            {/* Poll options configuration */}
-            {postType === 'POLL' && (
-              <div className="space-y-2.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Poll Options</label>
-                {pollOptions.map((opt, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <input
-                      value={opt}
-                      onChange={(e) => handleOptionChange(index, e.target.value)}
-                      placeholder={`Option ${index + 1}`}
-                      className="flex-1 px-4 py-2 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                    />
-                    {pollOptions.length > 2 && (
-                      <button
-                        type="button"
-                        onClick={() => removeOption(index)}
-                        className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+            <div className="p-4 space-y-4">
+              {/* Searchable Target Group Picker */}
+              <div className="space-y-1 relative" ref={dropdownRef}>
+                <label className="text-xs font-semibold text-muted-foreground">Select Group / Community</label>
+                
+                <div
+                  onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-secondary border border-border hover:border-primary/40 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {selectedGroup ? (
+                      <div className="w-6 h-6 rounded bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
+                        {selectedGroup.name[0]}
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded bg-secondary border border-border flex items-center justify-center text-xs shrink-0">🏠</div>
                     )}
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {selectedGroup ? `g/${selectedGroup.slug}` : 'General Feed'}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                      — {selectedGroup?.name ?? 'No specific group'}
+                    </span>
                   </div>
-                ))}
-                {pollOptions.length < 6 && (
-                  <button
-                    type="button"
-                    onClick={addOption}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                  >
-                    <Plus size={14} /> Add Option
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0 text-xs font-semibold text-primary">
+                    <span>Choose</span>
+                    <ChevronDown size={14} className={`transition-transform ${isGroupDropdownOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                </div>
+
+                {isGroupDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl z-50 p-2 space-y-2 max-h-60 overflow-y-auto">
+                    <div className="relative">
+                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={groupSearch}
+                        onChange={(e) => setGroupSearch(e.target.value)}
+                        placeholder="Search groups (e.g. g/confessions, g/sports)..."
+                        className="w-full pl-8 pr-3 py-1.5 bg-secondary border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="space-y-1 divide-y divide-border/50">
+                      {/* General Feed option — always visible at top */}
+                      {!groupSearch.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCommunityId('');
+                            setIsGroupDropdownOpen(false);
+                            setGroupSearch('');
+                          }}
+                          className={`w-full text-left p-2 rounded-md flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                            !communityId ? 'bg-primary/10 text-foreground font-semibold' : 'hover:bg-secondary text-foreground'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-5 h-5 rounded bg-secondary border border-border flex items-center justify-center text-[10px] font-bold shrink-0 text-muted-foreground">
+                              🏠
+                            </div>
+                            <span className="font-bold">General Feed</span>
+                            <span className="text-muted-foreground truncate">No specific group</span>
+                          </div>
+                          {!communityId && <Check size={14} className="text-primary shrink-0" />}
+                        </button>
+                      )}
+
+                      {filteredGroups.length === 0 && groupSearch.trim() ? (
+                        <div className="py-4 text-center text-xs text-muted-foreground">
+                          No groups found matching &quot;{groupSearch}&quot;
+                        </div>
+                      ) : (
+                        filteredGroups.map((g) => {
+                          const isSelected = g.id === communityId;
+                          return (
+                            <button
+                              key={g.id}
+                              type="button"
+                              onClick={() => {
+                                setCommunityId(g.id);
+                                setIsGroupDropdownOpen(false);
+                                setGroupSearch('');
+                              }}
+                              className={`w-full text-left p-2 rounded-md flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                                isSelected ? 'bg-primary/10 text-foreground font-semibold' : 'hover:bg-secondary text-foreground'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-5 h-5 rounded bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shrink-0">
+                                  {g.name[0]}
+                                </div>
+                                <span className="font-bold">g/{g.slug}</span>
+                                <span className="text-muted-foreground truncate">{g.name}</span>
+                              </div>
+                              {isSelected && <Check size={14} className="text-primary shrink-0" />}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
-            )}
 
-            {/* Image upload */}
-            {postType === 'IMAGE' && (
-              <div className="space-y-3">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => handleImageSelect(e.target.files)}
-                  className="hidden"
-                />
-                
-                {selectedImages.length === 0 ? (
+              {/* Explicit Privacy Mode */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                  <span>Posting Privacy</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Choose how your post appears</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-secondary/50 p-1 rounded-lg border border-border">
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="w-full p-6 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-50 flex flex-col items-center gap-2"
+                    onClick={() => setIsAnonymous(false)}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                      !isAnonymous
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
                   >
-                    {isUploading ? (
-                      <>
-                        <Loader size={24} className="text-primary animate-spin" />
-                        <span className="text-sm font-medium text-muted-foreground">Uploading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon size={24} className="text-primary" />
-                        <span className="text-sm font-medium text-muted-foreground">Click to upload or drag images here</span>
-                        <span className="text-xs text-muted-foreground">Max 4 images, 5MB each (JPEG, PNG, GIF, WebP)</span>
-                      </>
-                    )}
+                    <Eye size={14} />
+                    <span>Public (u/{user?.username || 'user'})</span>
                   </button>
-                ) : (
+
+                  <button
+                    type="button"
+                    onClick={() => setIsAnonymous(true)}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                      isAnonymous
+                        ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    <EyeOff size={14} />
+                    <span>Anonymous</span>
+                  </button>
+                </div>
+                
+                <div className={`p-2 rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-all ${
+                  isAnonymous 
+                    ? 'bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20' 
+                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/20'
+                }`}>
+                  <Shield size={12} className="shrink-0" />
+                  <span>
+                    {isAnonymous
+                      ? 'Anonymous Post: Your name and profile will be hidden. Posted as u/Anonymous.'
+                      : `Public Post: Posted under your campus handle u/${user?.username || 'user'}.`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Title (Optional) */}
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Title (optional)"
+                className="w-full px-3 py-2 rounded-md bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm font-semibold"
+              />
+
+              {/* LINK EMBED INPUT */}
+              {postType === 'LINK' && (
+                <div className="space-y-1.5 p-3 rounded-lg bg-secondary/40 border border-primary/30">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <LinkIcon size={14} className="text-primary" /> Embed External URL Link
+                  </label>
+                  <input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="Paste link URL (e.g. https://github.com/..., https://youtube.com/watch?v=...)"
+                    className="w-full px-3 py-2 rounded-md bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Pasted link will generate a clickable preview card on your post.</p>
+                </div>
+              )}
+
+              {/* Content Body */}
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="What's on your mind? Share campus news, questions, or memes..."
+                rows={4}
+                className="w-full px-3 py-2 rounded-md bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm resize-none"
+              />
+
+              {/* IMAGE UPLOAD PREVIEW */}
+              {postType === 'IMAGE' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">Images ({selectedImages.length}/4)</span>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading || selectedImages.length >= 4}
+                      className="text-xs text-primary font-semibold hover:underline disabled:opacity-50"
+                    >
+                      + Add image
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {selectedImages.map((img, i) => (
+                      <div key={i} className="relative group rounded-md overflow-hidden border border-border bg-secondary aspect-square">
+                        <img src={img.url} alt="Upload preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(i)}
+                          className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* VIDEO UPLOAD PREVIEW */}
+              {postType === 'VIDEO' && (
+                <div className="space-y-2 p-3 rounded-lg bg-secondary/40 border border-primary/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Film size={14} className="text-primary" /> Video Attachment
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="text-xs text-primary font-semibold hover:underline"
+                    >
+                      {selectedVideo ? 'Change Video' : '+ Select Video'}
+                    </button>
+                  </div>
+
+                  {selectedVideo ? (
+                    <div className="relative rounded-lg overflow-hidden bg-black max-h-48 border border-border">
+                      <video src={selectedVideo.url} controls className="w-full max-h-48 object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedVideo(null)}
+                        className="absolute top-2 right-2 p-1 bg-black/80 text-white rounded-full hover:bg-black"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => videoInputRef.current?.click()}
+                      className="py-8 border-2 border-dashed border-border rounded-lg text-center cursor-pointer hover:bg-secondary transition-colors"
+                    >
+                      <Film size={24} className="mx-auto text-primary mb-1" />
+                      <p className="text-xs font-semibold text-foreground">Click to upload campus video</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">MP4, WEBM, MOV up to 50MB</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* POLL COMPOSER */}
+              {postType === 'POLL' && (
+                <div className="space-y-2.5 p-3 rounded-lg bg-secondary/30 border border-border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">Poll Options</span>
+                    <span className="text-[10px] text-muted-foreground">Minimum 2 options required</span>
+                  </div>
+
                   <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      {selectedImages.map((img, idx) => (
-                        <div key={idx} className="relative group">
-                          <img src={img.url} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded-lg" />
+                    {pollOptions.map((opt, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={opt}
+                          onChange={(e) => handleOptionChange(i, e.target.value)}
+                          placeholder={`Option ${i + 1}`}
+                          className="flex-1 px-3 py-1.5 rounded-md bg-secondary border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        {pollOptions.length > 2 && (
                           <button
                             type="button"
-                            onClick={() => removeImage(idx)}
-                            className="absolute top-1 right-1 p-1 bg-red-500/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => removeOption(i)}
+                            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
                           >
-                            <X size={14} />
+                            <Trash2 size={14} />
                           </button>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedImages.length < 4 && (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
-                        className="w-full py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 text-sm font-medium transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        {isUploading ? 'Uploading...' : 'Add More Images'}
-                      </button>
-                    )}
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
+
+                  {pollOptions.length < 6 && (
+                    <button
+                      type="button"
+                      onClick={addOption}
+                      className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 mt-1"
+                    >
+                      <Plus size={12} /> Add option
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Hidden file inputs */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                onChange={handleVideoSelect}
+                className="hidden"
+              />
+
+              {/* BOTTOM ACTIONS BAR */}
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (postType === 'IMAGE') setPostType('TEXT');
+                      else fileInputRef.current?.click();
+                    }}
+                    disabled={isUploading}
+                    className={`p-2 rounded-md transition-colors cursor-pointer ${
+                      postType === 'IMAGE' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
+                    title="Upload images"
+                  >
+                    <ImageIcon size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (postType === 'VIDEO') setPostType('TEXT');
+                      else videoInputRef.current?.click();
+                    }}
+                    disabled={isUploading}
+                    className={`p-2 rounded-md transition-colors cursor-pointer ${
+                      postType === 'VIDEO' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
+                    title="Upload video"
+                  >
+                    <Video size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (postType === 'LINK') setPostType('TEXT');
+                      else setPostType('LINK');
+                    }}
+                    className={`p-2 rounded-md transition-colors cursor-pointer ${
+                      postType === 'LINK' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
+                    title="Embed link"
+                  >
+                    <LinkIcon size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (postType === 'POLL') setPostType('TEXT');
+                      else setPostType('POLL');
+                    }}
+                    className={`p-2 rounded-md transition-colors cursor-pointer ${
+                      postType === 'POLL' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
+                    title="Create a poll"
+                  >
+                    <BarChart3 size={18} />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="px-3.5 py-1.5 rounded-full border border-border text-foreground text-xs font-semibold hover:bg-secondary transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || isUploading || !content.trim()}
+                    className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
+                  >
+                    {isSubmitting ? (
+                      <Loader size={14} className="animate-spin" />
+                    ) : (
+                      <>
+                        <span>Post</span>
+                        <Send size={12} />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            )}
-
-            <select
-              value={communityId}
-              onChange={(e) => setCommunityId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm appearance-none"
-            >
-              <option value="" disabled>Select a group...</option>
-              {groups?.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setIsAnonymous(!isAnonymous)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                    isAnonymous
-                      ? 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
-                      : 'bg-secondary text-muted-foreground border border-border'
-                  }`}
-                >
-                  {isAnonymous ? <EyeOff size={16} /> : <Eye size={16} />}
-                  {isAnonymous ? 'Anonymous' : 'Public'}
-                </button>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
-                disabled={isSubmitting || !content.trim()}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold flex items-center gap-2 text-sm disabled:opacity-50 hover:shadow-lg hover:shadow-violet-500/25 transition-all cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Send size={16} />
-                )}
-                Post
-              </motion.button>
             </div>
           </motion.div>
         )}

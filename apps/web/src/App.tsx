@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/auth-store';
 import { MainLayout } from './components/layout/MainLayout';
 import { AuthLayout } from './components/layout/AuthLayout';
@@ -23,14 +23,52 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { AdminPage } from './pages/AdminPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
-  if (isLoading) return <div className="flex items-center justify-center h-screen"><div className="skeleton w-10 h-10 rounded-full" /></div>;
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+  const location = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="skeleton w-10 h-10 rounded-full" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  // Only redirect to onboarding if user's onboardingCompleted flag is explicitly false
+  // AND the current route is not already /onboarding
+  if (user?.onboardingCompleted === false && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return <>{children}</>;
 }
 
+function HomeRoute() {
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="skeleton w-10 h-10 rounded-full" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return user?.onboardingCompleted === false ? (
+      <Navigate to="/onboarding" replace />
+    ) : (
+      <Navigate to="/feed" replace />
+    );
+  }
+
+  return <LandingPage />;
+}
+
 export function App() {
-  const { checkAuth, isAuthenticated } = useAuthStore();
+  const { checkAuth } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
@@ -38,8 +76,8 @@ export function App() {
 
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/" element={isAuthenticated ? <Navigate to="/feed" replace /> : <LandingPage />} />
+      {/* Public Landing */}
+      <Route path="/" element={<HomeRoute />} />
 
       {/* Auth */}
       <Route element={<AuthLayout />}>
@@ -56,6 +94,7 @@ export function App() {
         <Route path="/post/:id" element={<PostDetailPage />} />
         <Route path="/groups" element={<GroupsPage />} />
         <Route path="/g/:slug" element={<GroupPage />} />
+        <Route path="/u/:username" element={<ProfilePage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
@@ -70,6 +109,7 @@ export function App() {
         <Route path="/admin" element={<AdminPage />} />
       </Route>
 
+      {/* Onboarding Page */}
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
     </Routes>
   );

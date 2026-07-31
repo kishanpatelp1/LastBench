@@ -76,6 +76,14 @@ authRoutes.get('/me', requireAuth(), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/auth/user/:username — public profile lookup
+authRoutes.get('/user/:username', async (req, res, next) => {
+  try {
+    const user = await authService.getByUsername(String(req.params.username));
+    res.json({ success: true, data: user });
+  } catch (err) { next(err); }
+});
+
 // PATCH /api/auth/profile
 authRoutes.patch('/profile', requireAuth(), requireVerifiedEmail(), validate(updateProfileSchema), async (req, res, next) => {
   try {

@@ -73,9 +73,18 @@ export function createApp(): Express {
   app.use(rateLimiter());
 
   // ─── Static uploads ────────────────────────────
-  // C-5: Force attachment disposition so uploaded files are never rendered as HTML
+  // C-5: Only force attachment disposition for potentially dangerous file types
+  // (HTML, SVG, XML). Images and videos should be served inline so the lightbox
+  // and video player work correctly. Blanket 'attachment' was breaking the UI.
   app.use('/uploads', (req, res, next) => {
-    res.setHeader('Content-Disposition', 'attachment');
+    const url = req.url.toLowerCase();
+    const isDangerous = /\.(html?|svg|xml|xhtml|php|js|css)(\?.*)?$/.test(url);
+    if (isDangerous) {
+      res.setHeader('Content-Disposition', 'attachment');
+    } else {
+      // Serve images/videos inline but with strict type-checking
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
     next();
   }, express.static(env.UPLOAD_DIR));
 

@@ -2,12 +2,12 @@ export function PrivacyPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 pt-8 pb-24 md:py-12 space-y-8">
       <h1 className="text-3xl font-bold text-foreground">Privacy Policy</h1>
-      <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
+      <p className="text-muted-foreground">Last updated: July 30, 2026</p>
 
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold text-foreground">1. Information We Collect</h2>
         <p className="text-muted-foreground leading-relaxed">
-          When you use LastBench, we collect information you provide directly to us, such as when you create or modify your account, request on-demand services, contact customer support, or otherwise communicate with us. This information may include: name, email, avatar, college, branch, and any other information you choose to provide.
+          When you use LastBench, we collect information you provide directly to us, such as when you create or modify your account, post content, join campus groups, or communicate with other students. This information may include: your name, email, profile photo, academic branch, year of study, and any other information you choose to provide.
         </p>
       </section>
 

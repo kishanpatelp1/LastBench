@@ -21,7 +21,7 @@ searchRoutes.get('/', validate(searchQuerySchema, 'query'), async (req, res, nex
     const results: { posts?: unknown[]; communities?: unknown[] } = {};
 
     if (type === 'posts' || type === 'all') {
-      results.posts = await prisma.post.findMany({
+      const rawPosts = await prisma.post.findMany({
         where: {
           isDeleted: false,
           OR: [
@@ -32,7 +32,63 @@ searchRoutes.get('/', validate(searchQuerySchema, 'query'), async (req, res, nex
         },
         take: limit,
         orderBy: { score: 'desc' },
-        include: { community: { select: { id: true, name: true, slug: true } } },
+        include: {
+          author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+          community: { select: { id: true, name: true, slug: true, avatarUrl: true } },
+          poll: {
+            include: {
+              options: {
+                include: {
+                  _count: { select: { votes: true } },
+                  votes: (req as any).user ? { where: { userId: (req as any).user.id } } : false,
+                },
+                orderBy: { orderNum: 'asc' },
+              },
+            },
+          },
+          votes: (req as any).user ? { where: { userId: (req as any).user.id } } : false,
+        },
+      });
+
+      results.posts = rawPosts.map((p) => {
+        return {
+          id: p.id,
+          title: p.title,
+          content: p.content,
+          type: p.type,
+          isAnonymous: p.isAnonymous,
+          mediaUrls: p.mediaUrls,
+          tags: p.tags,
+          score: p.score,
+          commentCount: p.commentCount,
+          isPinned: p.isPinned,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          author: p.isAnonymous
+            ? { id: 'anonymous', username: 'Anonymous', displayName: 'Anonymous', avatarUrl: null }
+            : p.author,
+          community: p.community,
+          userVote: Array.isArray(p.votes) && p.votes.length > 0 ? p.votes[0]?.type ?? null : null,
+          poll: p.poll ? (() => {
+            const pollOptions = p.poll.options;
+            const total = pollOptions.reduce((sum, opt) => sum + (opt._count?.votes || 0), 0);
+            return {
+              id: p.poll.id,
+              expiresAt: p.poll.expiresAt,
+              totalVotes: total,
+              userVotedOptionId: pollOptions.find(o => Array.isArray(o.votes) && o.votes.length > 0)?.id || null,
+              options: pollOptions.map(o => {
+                const count = o._count?.votes || 0;
+                return {
+                  id: o.id,
+                  text: o.text,
+                  voteCount: count,
+                  percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+                };
+              }),
+            };
+          })() : null,
+        };
       });
     }
 

@@ -21,12 +21,38 @@ export interface Community {
   name: string;
   slug: string;
   description?: string | null;
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
   category?: string | null;
   isMember?: boolean;
+  userRole?: 'OWNER' | 'MOD' | 'MEMBER' | null;
   memberCount: number;
   postCount: number;
   createdAt: string;
+  rules?: CommunityRule[];
 }
+
+export interface CommunityRule {
+  id: string;
+  title: string;
+  description?: string | null;
+  orderNum: number;
+}
+
+export interface CommunityMember {
+  id: string;
+  role: 'OWNER' | 'MOD' | 'MEMBER';
+  joinedAt: string;
+  user: {
+    id: string;
+    username: string;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+    branch?: string | null;
+    year?: number | null;
+  };
+}
+
 
 export interface PollOption {
   id: string;
@@ -47,7 +73,9 @@ export interface Post {
   title?: string | null;
   content: string;
   type: string;
+  linkUrl?: string | null;
   isAnonymous: boolean;
+  isPinned?: boolean;
   mediaUrls?: string[];
   score: number;
   commentCount: number;

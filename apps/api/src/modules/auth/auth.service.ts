@@ -160,6 +160,20 @@ export const authService = {
     return user;
   },
 
+  async getByUsername(username: string) {
+    const user = await prisma.user.findFirst({
+      where: { username: { equals: username, mode: 'insensitive' } },
+      select: {
+        id: true, username: true, displayName: true, role: true,
+        avatarUrl: true, branch: true, year: true, bio: true,
+        createdAt: true,
+        _count: { select: { posts: true, comments: true } },
+      },
+    });
+    if (!user) throw new AppError(404, 'User profile not found');
+    return user;
+  },
+
   // H-4: use typed UpdateProfileInput instead of Record<string, unknown>
   async updateProfile(userId: string, data: UpdateProfileInput) {
     // Explicitly pick only allowed fields to prevent privilege escalation (H-4)
