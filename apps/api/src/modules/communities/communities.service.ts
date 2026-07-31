@@ -4,11 +4,11 @@ import type { CreateCommunityInput, UpdateCommunityInput, CommunitiesQuery } fro
 import { getCache, setCache, invalidateCache } from '../../lib/redis.js';
 
 // Shape returned for every community list / detail response
-function formatCommunity(community: Record<string, unknown>, userId?: string) {
+function formatCommunity(community: Record<string, unknown>, _userId?: string) {
   const counts = community._count as { members?: number; posts?: number } | undefined;
   const memberships = community.members as Array<{ role: string }> | undefined;
 
-  const userMembership = memberships?.find?.(() => true); // the filtered single record
+  const userMembership = memberships?.[0]; // single filtered record
   const userRole = userMembership?.role ?? null;
 
   return {
@@ -79,9 +79,9 @@ export const communityService = {
     return updated;
   },
 
-  async getAll(query: CommunitiesQuery = { limit: 20 }) {
+  async getAll(query: CommunitiesQuery = { limit: 20 }, userId?: string) {
     const { cursor, limit = 20 } = query;
-    const cacheKey = !cursor ? `communities:list:${limit}` : null;
+    const cacheKey = !userId && !cursor ? `communities:list:${limit}` : null;
 
     if (cacheKey) {
       const cached = await getCache<Record<string, unknown>>(cacheKey);
@@ -92,19 +92,17 @@ export const communityService = {
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      include: { _count: { select: { members: true, posts: true } } },
+      include: {
+        _count: { select: { members: true, posts: true } },
+        members: userId ? { where: { userId }, select: { id: true, role: true } } : false,
+      },
     });
 
     const hasMore = communities.length > limit;
     const items = hasMore ? communities.slice(0, -1) : communities;
 
     const result = {
-      items: items.map((c) => ({
-        ...c,
-        memberCount: c._count.members,
-        postCount: c._count.posts,
-        _count: undefined,
-      })),
+      items: items.map((c) => formatCommunity(c as unknown as Record<string, unknown>, userId)),
       hasMore,
       nextCursor: hasMore ? items[items.length - 1]?.id : undefined,
     };

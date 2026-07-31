@@ -29,10 +29,10 @@ export function ReportModal({ isOpen = true, onClose, targetId, targetType, enti
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const finalId = entityId ?? targetId ?? '';
+  const finalId = entityId ?? targetId;
   const finalType = entityType ?? targetType ?? 'POST';
 
-  if (!isOpen) return null;
+  if (!isOpen || !finalId) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

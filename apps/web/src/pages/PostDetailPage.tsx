@@ -10,7 +10,6 @@ import { CommentThread } from '../components/comments/CommentThread';
 export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
 
   const { data: post, isLoading: isPostLoading, error } = useQuery({
     queryKey: ['post', id],

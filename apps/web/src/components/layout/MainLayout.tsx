@@ -18,17 +18,17 @@ export function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { data: notifData } = useQuery({
+  const { data: unreadData } = useQuery({
     queryKey: ['notifications-unread'],
-    queryFn: () => api.getNotifications({ limit: '1' }),
+    queryFn: () => api.getUnreadCount(),
     enabled: isAuthenticated,
     refetchInterval: 30000,
   });
 
-  const hasUnread = (notifData && (notifData as any).length > 0) || (user as any)?.unreadCount > 0;
+  const hasUnread = (unreadData?.count ?? 0) > 0 || (user as any)?.unreadCount > 0;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 

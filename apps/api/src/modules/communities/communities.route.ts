@@ -13,9 +13,9 @@ import { optionalAuth, requireAuth, requireVerifiedEmail } from '../../middlewar
 export const communityRoutes: Router = Router();
 
 // ─── List all communities (paginated) ───────────────────────────────────────
-communityRoutes.get('/', validate(communitiesQuerySchema, 'query'), async (req, res, next) => {
+communityRoutes.get('/', optionalAuth(), validate(communitiesQuerySchema, 'query'), async (req, res, next) => {
   try {
-    const result = await communityService.getAll(req.validated as CommunitiesQuery);
+    const result = await communityService.getAll(req.validated as CommunitiesQuery, req.userId);
     res.json({ success: true, data: result });
   } catch (err) { next(err); }
 });

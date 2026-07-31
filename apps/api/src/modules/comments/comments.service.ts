@@ -13,8 +13,16 @@ export const commentService = {
       select: { authorId: true, isDeleted: true },
     });
 
-    if (!post || post.isDeleted) {
-      throw new AppError(404, 'Post not found');
+    let depth = 0;
+    if (input.parentId) {
+      const parent = await prisma.comment.findUnique({
+        where: { id: input.parentId },
+        select: { postId: true, depth: true, isDeleted: true },
+      });
+      if (!parent || parent.isDeleted || parent.postId !== input.postId) {
+        throw new AppError(400, 'Parent comment not found or belongs to another post');
+      }
+      depth = parent.depth + 1;
     }
 
     const comment = await prisma.comment.create({
@@ -22,6 +30,7 @@ export const commentService = {
         postId: input.postId,
         authorId,
         parentId: input.parentId,
+        depth,
         content: sanitizeInput(input.content),
         isAnonymous: input.isAnonymous ?? true,
       },
@@ -36,7 +45,7 @@ export const commentService = {
     });
 
     // M-9: Notify post author when someone comments (skip self-notifications)
-    if (post.authorId && post.authorId !== authorId) {
+    if (post?.authorId && post.authorId !== authorId) {
       await notificationService.create(
         post.authorId,
         'COMMENT',
