@@ -10,13 +10,14 @@ function formatCommunity(community: Record<string, unknown>, _userId?: string) {
 
   const userMembership = memberships?.[0]; // single filtered record
   const userRole = userMembership?.role ?? null;
+  const isDefault = Boolean(community.isDefault || community.slug === 'general');
 
   return {
     ...community,
     memberCount: counts?.members ?? 0,
     postCount: counts?.posts ?? 0,
-    isMember: !!userMembership,
-    userRole,    // 'OWNER' | 'MOD' | 'MEMBER' | null
+    isMember: isDefault ? true : !!userMembership,
+    userRole: isDefault && !userRole ? 'MEMBER' : userRole,    // 'OWNER' | 'MOD' | 'MEMBER' | null
     _count: undefined,
     members: undefined,
   };
@@ -33,20 +34,22 @@ export const communityService = {
       prisma.community.findFirst({ where: { name: { equals: name, mode: 'insensitive' } } }),
     ]);
 
-    if (slugTaken) throw new AppError(409, `A group with handle g/${slug} already exists`);
-    if (nameTaken) throw new AppError(409, `A group named "${name}" already exists`);
+    if (slugTaken) throw new AppError(409, `Group handle 'g/${slug}' is already taken`);
+    if (nameTaken) throw new AppError(409, `Group name '${name}' is already taken`);
 
-    // Create the community and add the creator as OWNER in one transaction
-    const community = await prisma.$transaction(async (tx) => {
-      const newCommunity = await tx.community.create({
-        data: { name, slug, description: input.description, category: input.category },
-      });
-
-      await tx.communityMember.create({
-        data: { userId: creatorId, communityId: newCommunity.id, role: 'OWNER' },
-      });
-
-      return newCommunity;
+    const community = await prisma.community.create({
+      data: {
+        name,
+        slug,
+        description: input.description,
+        category: input.category,
+        avatarUrl: input.avatarUrl,
+        bannerUrl: input.bannerUrl,
+        isDefault: false,
+        members: {
+          create: { userId: creatorId, role: 'OWNER' },
+        },
+      },
     });
 
     await invalidateCache('communities:*');
@@ -79,16 +82,27 @@ export const communityService = {
     return updated;
   },
 
-  async getAll(query: CommunitiesQuery = { limit: 20 }, userId?: string) {
-    const { cursor, limit = 20 } = query;
-    const cacheKey = !userId && !cursor ? `communities:list:${limit}` : null;
+  async getAll(query: CommunitiesQuery, userId?: string) {
+    const { category, search, cursor, limit = 20 } = query;
+    const cacheKey = !userId && !category && !search && !cursor ? `communities:all:${limit}` : null;
 
     if (cacheKey) {
       const cached = await getCache<Record<string, unknown>>(cacheKey);
       if (cached) return cached;
     }
 
+    const where: Record<string, unknown> = {};
+    if (category) where.category = category;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
     const communities = await prisma.community.findMany({
+      where,
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -140,6 +154,13 @@ export const communityService = {
   },
 
   async join(communityId: string, userId: string) {
+    const community = await prisma.community.findUnique({ where: { id: communityId } });
+    if (!community) throw new AppError(404, 'Community not found');
+
+    if (community.isDefault || community.slug === 'general') {
+      return { success: true };
+    }
+
     // upsert so hitting "join" twice is idempotent
     await prisma.communityMember.upsert({
       where: { userId_communityId: { userId, communityId } },
@@ -152,6 +173,13 @@ export const communityService = {
   },
 
   async leave(communityId: string, userId: string) {
+    const community = await prisma.community.findUnique({ where: { id: communityId } });
+    if (!community) throw new AppError(404, 'Community not found');
+
+    if (community.isDefault || community.slug === 'general') {
+      throw new AppError(400, 'The General campus feed is open to all students by default and cannot be left.');
+    }
+
     // Owners can't just leave — they must transfer ownership first
     const membership = await prisma.communityMember.findUnique({
       where: { userId_communityId: { userId, communityId } },

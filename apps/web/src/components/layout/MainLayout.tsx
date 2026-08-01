@@ -94,6 +94,9 @@ export function MainLayout() {
         <form onSubmit={handleSearchSubmit} className="flex-1 max-w-xl relative hidden sm:block">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input
+            id="global-search-input"
+            name="search"
+            aria-label="Search LastBench"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -175,6 +178,9 @@ export function MainLayout() {
               <form onSubmit={handleSearchSubmit} className="relative mb-2">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                 <input
+                  id="mobile-search-input"
+                  name="mobileSearch"
+                  aria-label="Mobile search LastBench"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}

@@ -24,6 +24,7 @@ export interface Community {
   avatarUrl?: string | null;
   bannerUrl?: string | null;
   category?: string | null;
+  isDefault?: boolean;
   isMember?: boolean;
   userRole?: 'OWNER' | 'MOD' | 'MEMBER' | null;
   memberCount: number;

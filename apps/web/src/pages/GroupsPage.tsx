@@ -64,8 +64,11 @@ function CreateGroupModal({ onClose }: { onClose: () => void }) {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Group Name</label>
+            <label htmlFor="create-group-name" className="text-xs font-semibold text-foreground">Group Name</label>
             <input
+              id="create-group-name"
+              name="name"
+              aria-label="Group Name"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="e.g. Robotics & AI Club"
@@ -75,10 +78,13 @@ function CreateGroupModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Group Handle (URL)</label>
+            <label htmlFor="create-group-slug" className="text-xs font-semibold text-foreground">Group Handle (URL)</label>
             <div className="relative flex items-center">
               <span className="absolute left-3 text-xs text-muted-foreground font-semibold">g/</span>
               <input
+                id="create-group-slug"
+                name="slug"
+                aria-label="Group Handle"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 placeholder="robotics"
@@ -89,8 +95,11 @@ function CreateGroupModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Category</label>
+            <label htmlFor="create-group-category" className="text-xs font-semibold text-foreground">Category</label>
             <select
+              id="create-group-category"
+              name="category"
+              aria-label="Category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -108,8 +117,11 @@ function CreateGroupModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Description</label>
+            <label htmlFor="create-group-description" className="text-xs font-semibold text-foreground">Description</label>
             <textarea
+              id="create-group-description"
+              name="description"
+              aria-label="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what your campus group is about..."
@@ -204,11 +216,14 @@ export function GroupsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input
+            id="groups-explorer-search"
+            name="search"
+            aria-label="Search campus groups"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search groups..."
-            className="w-full pl-9 pr-4 py-2 bg-card border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            placeholder="Search campus groups by name or handle..."
+            className="w-full pl-9 pr-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
 
@@ -262,9 +277,11 @@ export function GroupsPage() {
                         <div className="text-xs text-muted-foreground">g/{c.slug}</div>
                       </div>
                     </Link>
-                    {c.isMember && (
+                    {c.isDefault || c.slug === 'general' ? (
+                      <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded shrink-0 mt-1">Default Feed</span>
+                    ) : c.isMember ? (
                       <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded shrink-0 mt-1">Joined</span>
-                    )}
+                    ) : null}
                   </div>
 
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
