@@ -22,8 +22,6 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
     year: user?.year ? String(user.year) : '',
   });
 
-  if (!isOpen) return null;
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -67,7 +65,8 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -188,6 +187,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           </form>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 }

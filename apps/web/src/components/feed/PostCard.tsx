@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { ArrowBigUp, ArrowBigDown, MessageSquare, Share2, MoreHorizontal, Pin, Trash2, Check, ExternalLink, Flag, Maximize2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
@@ -459,28 +460,32 @@ export function PostCard({ post }: PostCardProps) {
     </article>
 
     {/* IMAGE LIGHTBOX */}
-    {lightboxIndex !== null && post.mediaUrls && (
-      <div onClick={(e) => e.stopPropagation()}>
-        <MediaLightbox
-          urls={post.mediaUrls}
-          initialIndex={lightboxIndex}
-          isVideo={false}
-          onClose={() => setLightboxIndex(null)}
-        />
-      </div>
-    )}
+    <AnimatePresence>
+      {lightboxIndex !== null && post.mediaUrls && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <MediaLightbox
+            urls={post.mediaUrls}
+            initialIndex={lightboxIndex}
+            isVideo={false}
+            onClose={() => setLightboxIndex(null)}
+          />
+        </div>
+      )}
+    </AnimatePresence>
 
     {/* VIDEO LIGHTBOX */}
-    {showVideoLightbox && post.mediaUrls && (
-      <div onClick={(e) => e.stopPropagation()}>
-        <MediaLightbox
-          urls={post.mediaUrls}
-          initialIndex={0}
-          isVideo={true}
-          onClose={() => setShowVideoLightbox(false)}
-        />
-      </div>
-    )}
+    <AnimatePresence>
+      {showVideoLightbox && post.mediaUrls && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <MediaLightbox
+            urls={post.mediaUrls}
+            initialIndex={0}
+            isVideo={true}
+            onClose={() => setShowVideoLightbox(false)}
+          />
+        </div>
+      )}
+    </AnimatePresence>
     </>
   );
 }

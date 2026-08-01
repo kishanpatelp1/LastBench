@@ -111,16 +111,15 @@ export function MediaLightbox({ urls, initialIndex = 0, isVideo = false, onClose
   const currentUrl = urls[currentIndex] ?? '';
 
   return createPortal(
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[9999] flex flex-col"
-        style={{ background: 'rgba(0,0,0,0.95)' }}
-        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      >
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[9999] flex flex-col"
+      style={{ background: 'rgba(0,0,0,0.95)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
         {/* TOP BAR */}
         <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="flex items-center gap-3">
@@ -271,8 +270,7 @@ export function MediaLightbox({ urls, initialIndex = 0, isVideo = false, onClose
           {!isVideo && <span className="mr-4">+ - to zoom</span>}
           <span>Esc to close</span>
         </div>
-      </motion.div>
-    </AnimatePresence>,
+      </motion.div>,
     document.body
   );
 }

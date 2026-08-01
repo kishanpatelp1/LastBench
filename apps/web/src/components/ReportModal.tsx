@@ -32,8 +32,6 @@ export function ReportModal({ isOpen = true, onClose, targetId, targetType, enti
   const finalId = entityId ?? targetId;
   const finalType = entityType ?? targetType ?? 'POST';
 
-  if (!isOpen || !finalId) return null;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -56,7 +54,8 @@ export function ReportModal({ isOpen = true, onClose, targetId, targetType, enti
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      {isOpen && finalId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -145,6 +144,7 @@ export function ReportModal({ isOpen = true, onClose, targetId, targetType, enti
           </form>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 }
