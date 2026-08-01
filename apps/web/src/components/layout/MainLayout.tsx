@@ -82,8 +82,10 @@ export function MainLayout() {
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-foreground cursor-pointer p-1">
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-          <Link to="/feed" className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2">
-            <img src="/favicon.svg" alt="LastBench Logo" className="w-7 h-7 rounded-md object-contain shadow-sm" />
+          <Link to={isAuthenticated ? "/feed" : "/"} className="font-extrabold text-foreground text-lg tracking-tight flex items-center gap-2 cursor-pointer">
+            <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-black shadow-sm">
+              LB
+            </div>
             <span className="hidden sm:inline">LastBench</span>
           </Link>
         </div>

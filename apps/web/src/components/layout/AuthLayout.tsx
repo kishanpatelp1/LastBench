@@ -1,10 +1,12 @@
 import { Outlet, Link, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/auth-store';
-import { Shield, Users, BarChart3, Zap } from 'lucide-react';
+import { useThemeStore } from '../../stores/theme-store';
+import { Shield, Users, BarChart3, Zap, Sun, Moon } from 'lucide-react';
 
 export function AuthLayout() {
   const { isAuthenticated, isLoading, user } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const location = useLocation();
 
   if (isLoading) return null;
@@ -67,7 +69,14 @@ export function AuthLayout() {
       </div>
 
       {/* Right side — form outlet */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 relative">
+        <button
+          onClick={toggleTheme}
+          className="absolute top-6 right-6 p-2 rounded-full bg-secondary text-foreground hover:bg-secondary/80 transition-colors cursor-pointer border border-border"
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

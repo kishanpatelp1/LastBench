@@ -74,24 +74,131 @@ export function startWorkers() {
       if (job.name === 'verify-email') {
         const verifyUrl = `${frontendUrl}/verify-email?token=${token}`;
         html = `
-          <h2>Welcome to LastBench, ${username}!</h2>
-          <p>Click below to verify your email address:</p>
-          <a href="${verifyUrl}" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
-            Verify Email
-          </a>
-          <p>This link expires in 24 hours.</p>
-          <p>If you didn't create an account, ignore this email.</p>
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Verify your LastBench Email</title>
+          </head>
+          <body style="margin:0;padding:0;background-color:#09080e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#ffffff;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#09080e;padding:40px 20px;">
+              <tr>
+                <td align="center">
+                  <table role="presentation" width="100%" style="max-width:540px;background-color:#14121d;border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:40px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+                    <!-- Brand Header -->
+                    <tr>
+                      <td align="center" style="padding-bottom:24px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0">
+                          <tr>
+                            <td style="background:linear-gradient(135deg, #7c3aed, #a855f7);width:44px;height:44px;border-radius:12px;text-align:center;vertical-align:middle;color:#ffffff;font-weight:900;font-size:18px;">LB</td>
+                            <td style="padding-left:12px;color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px;">LastBench</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <!-- Main Body -->
+                    <tr>
+                      <td style="text-align:left;padding-bottom:24px;">
+                        <h1 style="font-size:22px;font-weight:800;color:#ffffff;margin:0 0 12px 0;">Welcome to campus, @${username}! 👋</h1>
+                        <p style="font-size:14px;color:#a1a1aa;line-height:1.6;margin:0 0 24px 0;">
+                          You're one step away from joining your college network. Please verify your email address to unlock your campus feed, branch groups, and live polls.
+                        </p>
+                        <!-- CTA Button -->
+                        <div style="text-align:center;margin:32px 0;">
+                          <a href="${verifyUrl}" target="_blank" style="background:linear-gradient(135deg, #7c3aed, #6d28d9);color:#ffffff;padding:14px 36px;border-radius:9999px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block;box-shadow:0 8px 20px rgba(124,58,237,0.4);">
+                            Verify My Email Address →
+                          </a>
+                        </div>
+                        <p style="font-size:12px;color:#71717a;line-height:1.5;margin:24px 0 0 0;text-align:center;">
+                          Or copy and paste this link into your browser:<br>
+                          <a href="${verifyUrl}" style="color:#a78bfa;word-break:break-all;">${verifyUrl}</a>
+                        </p>
+                      </td>
+                    </tr>
+                    <!-- Expiration Note -->
+                    <tr>
+                      <td style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:12px 16px;text-align:center;color:#c084fc;font-size:12px;font-weight:600;">
+                        ⏰ This link will expire in 24 hours.
+                      </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);margin-top:32px;color:#52525b;font-size:11px;text-align:center;">
+                        If you didn't sign up for a LastBench account, you can safely ignore this email.<br>
+                        &copy; 2026 LastBench • Campus Unfiltered
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
         `;
       } else if (job.name === 'password-reset') {
         const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
         html = `
-          <h2>Reset your LastBench password</h2>
-          <p>Hi ${username}, click below to set a new password:</p>
-          <a href="${resetUrl}" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
-            Reset Password
-          </a>
-          <p>This link expires in 1 hour.</p>
-          <p>If you didn't request this, ignore this email — your account is safe.</p>
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reset your LastBench Password</title>
+          </head>
+          <body style="margin:0;padding:0;background-color:#09080e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#ffffff;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#09080e;padding:40px 20px;">
+              <tr>
+                <td align="center">
+                  <table role="presentation" width="100%" style="max-width:540px;background-color:#14121d;border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:40px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+                    <!-- Brand Header -->
+                    <tr>
+                      <td align="center" style="padding-bottom:24px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0">
+                          <tr>
+                            <td style="background:linear-gradient(135deg, #7c3aed, #a855f7);width:44px;height:44px;border-radius:12px;text-align:center;vertical-align:middle;color:#ffffff;font-weight:900;font-size:18px;">LB</td>
+                            <td style="padding-left:12px;color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px;">LastBench</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <!-- Main Body -->
+                    <tr>
+                      <td style="text-align:left;padding-bottom:24px;">
+                        <h1 style="font-size:22px;font-weight:800;color:#ffffff;margin:0 0 12px 0;">Password Reset Request 🔐</h1>
+                        <p style="font-size:14px;color:#a1a1aa;line-height:1.6;margin:0 0 24px 0;">
+                          Hi @${username}, we received a request to reset your password. Click the button below to set a new password:
+                        </p>
+                        <!-- CTA Button -->
+                        <div style="text-align:center;margin:32px 0;">
+                          <a href="${resetUrl}" target="_blank" style="background:linear-gradient(135deg, #7c3aed, #6d28d9);color:#ffffff;padding:14px 36px;border-radius:9999px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block;box-shadow:0 8px 20px rgba(124,58,237,0.4);">
+                            Reset My Password →
+                          </a>
+                        </div>
+                        <p style="font-size:12px;color:#71717a;line-height:1.5;margin:24px 0 0 0;text-align:center;">
+                          Or copy and paste this link into your browser:<br>
+                          <a href="${resetUrl}" style="color:#a78bfa;word-break:break-all;">${resetUrl}</a>
+                        </p>
+                      </td>
+                    </tr>
+                    <!-- Expiration Note -->
+                    <tr>
+                      <td style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:12px 16px;text-align:center;color:#f87171;font-size:12px;font-weight:600;">
+                        ⏰ Link expires in 1 hour. If you didn't request this, your account is safe.
+                      </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);margin-top:32px;color:#52525b;font-size:11px;text-align:center;">
+                        &copy; 2026 LastBench • Campus Unfiltered
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
         `;
       }
 

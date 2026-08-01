@@ -1,30 +1,58 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
   <defs>
-    <linearGradient id="benchBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7c3aed" />
-      <stop offset="100%" stop-color="#5b21b6" />
+    <linearGradient id="blackBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e0c16" />
+      <stop offset="100%" stop-color="#05040a" />
     </linearGradient>
-    <linearGradient id="woodPlank" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#fbbf24" />
-      <stop offset="100%" stop-color="#f59e0b" />
+    <linearGradient id="violetGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="50%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#7c3aed" />
     </linearGradient>
   </defs>
 
-  <!-- Rounded Background Container -->
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#benchBg)" />
+  <!-- Deep Dark Mode Background Container (Watermark-Free) -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#blackBg)" stroke="#261f36" stroke-width="1.5" />
 
-  <!-- Bench Backrest Slats (Indian Wooden Slats) -->
-  <rect x="14" y="16" width="36" height="5" rx="2.5" fill="url(#woodPlank)" />
-  <rect x="14" y="23" width="36" height="5" rx="2.5" fill="url(#woodPlank)" opacity="0.95" />
+  <!-- Clean Theme-Matched Vector Line Art of the User's Desk & Bench Drawing -->
+  <g stroke="url(#violetGlow)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- ─── DESK ASSEMBLY (HIGH STRUCTURE) ─── -->
+    <!-- Desk Top Writing Surface -->
+    <polygon points="14,14 44,14 52,22 22,22" fill="#7c3aed" fill-opacity="0.2" />
+    
+    <!-- Desk Drawer Box / Front Panel -->
+    <polygon points="22,22 52,22 52,28 22,28" fill="#a855f7" fill-opacity="0.1" />
+    <line x1="22" y1="28" x2="14" y2="28" />
+    <line x1="14" y1="28" x2="14" y2="14" />
+    <line x1="22" y1="22" x2="22" y2="28" />
 
-  <!-- Bench Seat Slats -->
-  <rect x="12" y="33" width="40" height="6" rx="3" fill="url(#woodPlank)" />
+    <!-- Vertical Desk Legs -->
+    <line x1="22" y1="28" x2="22" y2="46" />
+    <line x1="52" y1="28" x2="52" y2="46" />
+    <line x1="14" y1="28" x2="14" y2="40" stroke-opacity="0.75" />
+    <line x1="44" y1="22" x2="44" y2="40" stroke-opacity="0.75" />
+    
+    <!-- Under-desk Support Crossbar -->
+    <line x1="14" y1="36" x2="44" y2="36" stroke-opacity="0.5" />
 
-  <!-- Metal Bench Frame (Backrest Supports & Legs) -->
-  <path d="M 17,16 L 17,45 M 47,16 L 47,45" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-  <!-- Diagonal Stays & Front Legs -->
-  <path d="M 14,35 L 14,48 M 50,35 L 50,48 M 17,40 L 12,48 M 47,40 L 52,48" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" />
+    <!-- ─── BENCH ASSEMBLY (LOWER FRONT STRUCTURE) ─── -->
+    <!-- Long Bench Seat Surface -->
+    <polygon points="28,34 54,34 58,40 32,40" fill="#c084fc" fill-opacity="0.3" />
+    <line x1="32" y1="40" x2="58" y2="40" stroke-width="2" />
+    <line x1="58" y1="40" x2="58" y2="42" />
+    <line x1="32" y1="40" x2="32" y2="42" />
+    <line x1="32" y1="42" x2="58" y2="42" />
 
-  <!-- LastBench "LB" Monogram Subscript Badge -->
-  <text x="32" y="57" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">LB</text>
+    <!-- Vertical Bench Legs -->
+    <line x1="32" y1="42" x2="32" y2="54" />
+    <line x1="58" y1="42" x2="58" y2="54" />
+    <line x1="28" y1="34" x2="28" y2="48" stroke-opacity="0.75" />
+    <line x1="54" y1="34" x2="54" y2="48" stroke-opacity="0.75" />
+
+    <!-- ─── FLOOR BASE RUNNER BARS ─── -->
+    <line x1="22" y1="46" x2="32" y2="54" stroke-width="2.2" />
+    <line x1="52" y1="46" x2="58" y2="54" stroke-width="2.2" />
+    <line x1="14" y1="40" x2="28" y2="48" stroke-opacity="0.6" />
+  </g>
 </svg>

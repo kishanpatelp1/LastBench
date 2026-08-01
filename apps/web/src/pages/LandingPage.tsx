@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { EyeOff, Users, MessageSquare, BarChart3, Zap, Shield, Sparkles, ArrowRight, Play, ExternalLink, Flame, CheckCircle2, GraduationCap, Lock, Heart } from 'lucide-react';
-import { useState } from 'react';
+import { EyeOff, Users, MessageSquare, BarChart3, Zap, Shield, Sparkles, ArrowRight, ExternalLink, CheckCircle2, GraduationCap, Sun, Moon } from 'lucide-react';
+import { useThemeStore } from '../stores/theme-store';
 
 const features = [
   { icon: EyeOff, title: 'Anonymous by Default', desc: 'Share genuine campus confessions, exams feedback, or questions without fear. Toggle public handle whenever you choose.' },
@@ -44,37 +44,61 @@ const mockPosts = [
 ];
 
 export function LandingPage() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'groups' | 'polls'>('feed');
+  const { theme, toggleTheme } = useThemeStore();
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-primary selection:text-white font-sans overflow-x-hidden">
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/90 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/favicon.svg" alt="LastBench Logo" className="w-9 h-9 rounded-xl object-contain shadow-lg shadow-primary/20" />
-            <span className="font-extrabold text-white text-lg tracking-tight">LastBench</span>
+    <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden relative transition-colors duration-200">
+      {/* TAKE-U-FORWARD STYLE FIXED TRANSLUCENT FLOATING ISLAND NAVBAR */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-5xl">
+        <nav className="bg-card/85 dark:bg-[#0d0b14]/80 backdrop-blur-xl border border-border/80 dark:border-white/15 rounded-full shadow-xl shadow-primary/5 flex items-center justify-between h-14 px-5">
+          <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
+            <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-extrabold text-xs tracking-tight shadow-md shadow-primary/20">
+              LB
+            </div>
+            <span className="font-extrabold text-foreground text-base tracking-tight">LastBench</span>
+          </Link>
+
+          {/* Center Links (Desktop) */}
+          <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-muted-foreground">
+            <Link to="/" className="text-foreground hover:text-primary transition-colors">Home</Link>
+            <Link to="/feed" className="hover:text-foreground transition-colors">Explore Feed</Link>
+            <Link to="/groups" className="hover:text-foreground transition-colors">Campus Groups</Link>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link to="/feed" className="hidden sm:inline-flex text-xs font-semibold text-white/70 hover:text-white transition-colors">
-              Explore Feed
-            </Link>
-            <Link to="/login" className="px-4 py-2 text-xs font-semibold text-white/80 hover:text-white transition-colors">
+          {/* Right Action Controls */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-secondary text-foreground transition-colors cursor-pointer border border-border/50"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <Link to="/login" className="px-3.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
               Sign In
             </Link>
-            <Link to="/feed" className="px-4 py-2 text-xs font-bold bg-primary text-white rounded-full hover:bg-primary/90 transition-all shadow-md shadow-primary/25 flex items-center gap-1">
-              Explore Campus <ArrowRight size={14} />
+            <Link
+              to="/register"
+              className="px-4 py-2 text-xs font-bold bg-primary text-white rounded-full hover:bg-primary/90 transition-all shadow-md shadow-primary/30 flex items-center gap-1.5"
+            >
+              <span>Get Started</span>
+              <ArrowRight size={13} />
             </Link>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-20 pb-16 md:pt-28 md:pb-24 px-4 overflow-hidden">
-        {/* Glow background blobs */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-primary/20 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute top-1/3 right-10 w-[300px] h-[300px] bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
+      {/* HERO SECTION WITH CLASSROOM BENCHES BACKGROUND */}
+      <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 px-4 overflow-hidden z-10">
+        {/* Scoped Classroom Benches Wallpaper Background (Image 3) */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-15 dark:opacity-25 mix-blend-overlay pointer-events-none z-0"
+          style={{ backgroundImage: 'url(/classroom-hero.jpg)' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background z-0 pointer-events-none" />
+
+        {/* Glow background blob */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-primary/15 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-12 relative z-10">
           {/* Left Text */}
@@ -84,14 +108,14 @@ export function LandingPage() {
               <span>The Next-Gen Campus Network for Students</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white leading-[1.1] tracking-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-foreground leading-[1.1] tracking-tight">
               Where Your Campus <br className="hidden sm:inline" />
-              <span className="bg-gradient-to-r from-primary via-purple-400 to-pink-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
                 Truly Connects.
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg text-white/70 max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
               Post anonymously or openly, join branch & club groups, vote on live polls, share media, and join real campus conversations — no fluff, no corporate energy.
             </p>
 
@@ -105,20 +129,20 @@ export function LandingPage() {
               </Link>
               <Link
                 to="/feed"
-                className="w-full sm:w-auto px-8 py-3.5 border border-white/20 text-white font-semibold rounded-full hover:bg-white/10 transition-colors text-sm flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 border border-border text-foreground font-semibold rounded-full hover:bg-secondary transition-colors text-sm flex items-center justify-center gap-2"
               >
                 <span>Browse Campus Feed</span>
               </Link>
             </div>
 
             {/* Social Trust Metrics */}
-            <div className="pt-6 flex items-center justify-center lg:justify-start gap-6 text-xs text-white/60">
+            <div className="pt-6 flex items-center justify-center lg:justify-start gap-6 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={16} className="text-emerald-400" />
+                <CheckCircle2 size={16} className="text-emerald-500" />
                 <span>100% Student Verified</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Shield size={16} className="text-purple-400" />
+                <Shield size={16} className="text-primary" />
                 <span>Privacy First & Anonymous</span>
               </div>
             </div>
@@ -126,35 +150,35 @@ export function LandingPage() {
 
           {/* Right Interactive Mockup Card */}
           <div className="w-full lg:w-[480px] shrink-0">
-            <div className="bg-[#14141d] border border-white/15 rounded-2xl p-4 shadow-2xl shadow-black/80 space-y-3 relative backdrop-blur-xl">
+            <div className="bg-card border border-border rounded-2xl p-4 shadow-2xl space-y-3 relative backdrop-blur-xl">
               {/* Card Header Bar */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500/80" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                   <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                  <span className="text-xs font-bold text-white/70 ml-2">LastBench Live Feed</span>
+                  <span className="text-xs font-bold text-foreground/80 ml-2">LastBench Live Feed</span>
                 </div>
-                <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">● Active Campus</span>
+                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">● Active Campus</span>
               </div>
 
               {/* Sample Live Posts */}
               {mockPosts.map((p, idx) => (
-                <div key={idx} className="bg-[#1b1b26] border border-white/10 rounded-xl p-3.5 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-white/50">
+                <div key={idx} className="bg-secondary/40 border border-border/70 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span className="font-bold text-primary">{p.group}</span>
-                    <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded font-semibold text-white/80">{p.badge}</span>
+                    <span className="text-[10px] bg-background border border-border px-2 py-0.5 rounded font-semibold text-foreground">{p.badge}</span>
                   </div>
 
-                  <h4 className="text-xs font-bold text-white leading-snug">{p.title}</h4>
-                  <p className="text-[11px] text-white/70 leading-relaxed">{p.content}</p>
+                  <h4 className="text-xs font-bold text-foreground leading-snug">{p.title}</h4>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">{p.content}</p>
 
                   {p.type === 'poll' && (
                     <div className="space-y-1.5 pt-1">
                       {p.pollOptions?.map((opt, i) => (
-                        <div key={i} className="relative rounded-md border border-white/15 bg-white/5 p-1.5 text-[11px] font-medium overflow-hidden">
+                        <div key={i} className="relative rounded-md border border-border bg-background p-1.5 text-[11px] font-medium overflow-hidden">
                           <div className="absolute inset-y-0 left-0 bg-primary/20" style={{ width: `${opt.pct}%` }} />
-                          <div className="relative z-10 flex justify-between px-1">
+                          <div className="relative z-10 flex justify-between px-1 text-foreground">
                             <span>{opt.text}</span>
                             <span className="font-bold text-primary">{opt.pct}%</span>
                           </div>
@@ -164,13 +188,13 @@ export function LandingPage() {
                   )}
 
                   {p.type === 'link' && (
-                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between text-xs text-primary font-semibold">
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-between text-xs text-primary font-semibold">
                       <span className="truncate">{p.linkUrl}</span>
                       <ExternalLink size={12} className="shrink-0 ml-2" />
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-1 text-[11px] text-white/40 font-medium">
+                  <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground font-medium">
                     <span>🔥 {p.upvotes} upvotes</span>
                     <span>💬 {p.comments} comments</span>
                   </div>
@@ -182,35 +206,35 @@ export function LandingPage() {
       </section>
 
       {/* STATS BAR */}
-      <section className="border-y border-white/10 bg-[#0f0f16] py-8 px-4">
+      <section className="border-y border-border bg-card/60 py-8 px-4 relative z-10">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-white">100%</div>
-            <div className="text-xs text-white/50 font-semibold mt-0.5">Student Privacy</div>
+            <div className="text-2xl sm:text-3xl font-black text-foreground">100%</div>
+            <div className="text-xs text-muted-foreground font-semibold mt-0.5">Student Privacy</div>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-black text-primary">Instant</div>
-            <div className="text-xs text-white/50 font-semibold mt-0.5">Campus Updates</div>
+            <div className="text-xs text-muted-foreground font-semibold mt-0.5">Campus Updates</div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-purple-400">Unlimited</div>
-            <div className="text-xs text-white/50 font-semibold mt-0.5">Branch & Club Groups</div>
+            <div className="text-2xl sm:text-3xl font-black text-purple-500">Unlimited</div>
+            <div className="text-xs text-muted-foreground font-semibold mt-0.5">Branch & Club Groups</div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-emerald-400">Real-time</div>
-            <div className="text-xs text-white/50 font-semibold mt-0.5">Polls & Discussions</div>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-500">Real-time</div>
+            <div className="text-xs text-muted-foreground font-semibold mt-0.5">Polls & Discussions</div>
           </div>
         </div>
       </section>
 
       {/* FEATURES GRID */}
-      <section className="py-20 px-4 bg-[#0a0a0f] relative">
+      <section className="py-20 px-4 relative z-10">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-3 max-w-xl mx-auto">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
               Designed Specifically for Campus Life
             </h2>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-muted-foreground">
               Everything students need to stay informed, express thoughts, and build real community.
             </p>
           </div>
@@ -221,13 +245,13 @@ export function LandingPage() {
                 key={idx}
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="bg-[#14141d] border border-white/10 rounded-2xl p-6 hover:border-primary/50 transition-colors space-y-3 shadow-lg"
+                className="bg-card border border-border rounded-2xl p-6 hover:border-primary/50 transition-colors space-y-3 shadow-lg"
               >
                 <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <feature.icon size={22} className="text-primary" />
                 </div>
-                <h3 className="font-bold text-white text-base">{feature.title}</h3>
-                <p className="text-xs text-white/60 leading-relaxed font-normal">{feature.desc}</p>
+                <h3 className="font-bold text-foreground text-base">{feature.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed font-normal">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -235,22 +259,22 @@ export function LandingPage() {
       </section>
 
       {/* CALL TO ACTION */}
-      <section className="py-20 px-4 bg-gradient-to-b from-[#0a0a0f] to-[#120d1c] border-t border-white/10 text-center relative overflow-hidden">
+      <section className="py-20 px-4 bg-card/60 border-t border-border text-center relative overflow-hidden z-10">
         <div className="max-w-3xl mx-auto space-y-6 relative z-10">
-          <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mx-auto text-primary">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary">
             <GraduationCap size={28} />
           </div>
-          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-black text-foreground tracking-tight">
             Ready to Take Your Campus Experience Higher?
           </h2>
-          <p className="text-sm sm:text-base text-white/70 max-w-lg mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto leading-relaxed">
             Join your classmates on LastBench today. Share thoughts, vote on campus polls, and join your branch groups.
           </p>
 
           <div className="pt-2">
             <Link
               to="/feed"
-              className="inline-flex px-8 py-3.5 bg-primary text-white font-bold rounded-full hover:bg-primary/90 transition-all text-sm shadow-xl shadow-primary/40 gap-2 items-center"
+              className="inline-flex px-8 py-3.5 bg-primary text-white font-bold rounded-full hover:bg-primary/90 transition-all text-sm shadow-xl shadow-primary/30 gap-2 items-center"
             >
               <span>Explore LastBench Feed</span>
               <ArrowRight size={16} />
@@ -260,20 +284,20 @@ export function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-[#07070a] border-t border-white/10 py-8 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40">
+      <footer className="bg-card border-t border-border py-8 px-4 relative z-10">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center text-white text-xs font-bold">
               LB
             </div>
-            <span className="font-bold text-white/80">LastBench Campus Social</span>
+            <span className="font-bold text-foreground">LastBench Campus Social</span>
           </div>
 
           <div>© 2026 LastBench. All rights reserved.</div>
 
           <div className="flex gap-6">
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
           </div>
         </div>
       </footer>
