@@ -84,7 +84,7 @@ function CreateGroupModal({ onClose }: { onClose: () => void }) {
               <input
                 id="create-group-slug"
                 name="slug"
-                aria-label="Group Handle"
+                aria-label="Group Handle (URL)"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 placeholder="robotics"

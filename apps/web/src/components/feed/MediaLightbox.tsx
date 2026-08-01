@@ -53,22 +53,26 @@ export function MediaLightbox({ urls, initialIndex = 0, isVideo = false, onClose
       }
       return;
     }
-    // For images, open in a new window at full resolution
     const win = window.open('about:blank', '_blank');
     if (win) {
-      win.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Image</title>
-            <style>
-              body { margin: 0; background: #000; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-              img { max-width: 100%; max-height: 100vh; object-fit: contain; }
-            </style>
-          </head>
-          <body><img src="${urls[currentIndex]}" /></body>
-        </html>
-      `);
+      const doc = win.document;
+      const body = doc.body;
+      const img = doc.createElement('img');
+
+      doc.title = 'Image';
+      body.style.margin = '0';
+      body.style.background = '#000';
+      body.style.display = 'flex';
+      body.style.alignItems = 'center';
+      body.style.justifyContent = 'center';
+      body.style.minHeight = '100vh';
+
+      img.src = urls[currentIndex] ?? '';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100vh';
+      img.style.objectFit = 'contain';
+
+      body.replaceChildren(img);
     }
   };
 
