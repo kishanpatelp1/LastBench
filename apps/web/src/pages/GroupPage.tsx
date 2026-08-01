@@ -159,9 +159,9 @@ export function GroupPage() {
                   <Settings size={15} />
                 </button>
               )}
-              {community.isDefault || community.slug === 'general' ? (
+              {community.slug === 'general' ? (
                 <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-primary/10 border border-primary/20 text-primary flex items-center gap-1.5">
-                  <Globe size={13} /> Default Campus Feed
+                  <Globe size={13} /> Default Campus Square
                 </span>
               ) : (
                 <button

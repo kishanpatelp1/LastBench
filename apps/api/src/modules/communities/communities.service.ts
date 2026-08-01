@@ -10,14 +10,14 @@ function formatCommunity(community: Record<string, unknown>, _userId?: string) {
 
   const userMembership = memberships?.[0]; // single filtered record
   const userRole = userMembership?.role ?? null;
-  const isDefault = Boolean(community.isDefault || community.slug === 'general');
+  const isDefaultFeed = Boolean(community.slug === 'general');
 
   return {
     ...community,
     memberCount: counts?.members ?? 0,
     postCount: counts?.posts ?? 0,
-    isMember: isDefault ? true : !!userMembership,
-    userRole: isDefault && !userRole ? 'MEMBER' : userRole,    // 'OWNER' | 'MOD' | 'MEMBER' | null
+    isMember: isDefaultFeed ? true : !!userMembership,
+    userRole: isDefaultFeed && !userRole ? 'MEMBER' : userRole,    // 'OWNER' | 'MOD' | 'MEMBER' | null
     _count: undefined,
     members: undefined,
   };
@@ -157,14 +157,7 @@ export const communityService = {
     const community = await prisma.community.findUnique({ where: { id: communityId } });
     if (!community) throw new AppError(404, 'Community not found');
 
-    if (community.isDefault || community.slug === 'general') {
-      await prisma.communityMember.upsert({
-        where: { userId_communityId: { userId, communityId } },
-        create: { userId, communityId, role: 'MEMBER' },
-        update: {},
-      });
-      await invalidateCache('communities:*');
-      await invalidateCache('feed:*');
+    if (community.slug === 'general') {
       return { success: true };
     }
 
@@ -183,7 +176,7 @@ export const communityService = {
     const community = await prisma.community.findUnique({ where: { id: communityId } });
     if (!community) throw new AppError(404, 'Community not found');
 
-    if (community.isDefault || community.slug === 'general') {
+    if (community.slug === 'general') {
       throw new AppError(400, 'The General campus feed is open to all students by default and cannot be left.');
     }
 

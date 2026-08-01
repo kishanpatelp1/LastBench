@@ -277,7 +277,7 @@ export function GroupsPage() {
                         <div className="text-xs text-muted-foreground">g/{c.slug}</div>
                       </div>
                     </Link>
-                    {c.isDefault || c.slug === 'general' ? (
+                    {c.slug === 'general' ? (
                       <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded shrink-0 mt-1">Default Feed</span>
                     ) : c.isMember ? (
                       <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded shrink-0 mt-1">Joined</span>
