@@ -158,6 +158,13 @@ export const communityService = {
     if (!community) throw new AppError(404, 'Community not found');
 
     if (community.isDefault || community.slug === 'general') {
+      await prisma.communityMember.upsert({
+        where: { userId_communityId: { userId, communityId } },
+        create: { userId, communityId, role: 'MEMBER' },
+        update: {},
+      });
+      await invalidateCache('communities:*');
+      await invalidateCache('feed:*');
       return { success: true };
     }
 
