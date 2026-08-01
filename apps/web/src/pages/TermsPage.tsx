@@ -2,12 +2,12 @@ export function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 pt-8 pb-24 md:py-12 space-y-8">
       <h1 className="text-3xl font-bold text-foreground">Terms of Service</h1>
-      <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
+      <p className="text-muted-foreground">Last updated: July 30, 2026</p>
 
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold text-foreground">1. Acceptance of Terms</h2>
         <p className="text-muted-foreground leading-relaxed">
-          By accessing and using LastBench, you accept and agree to be bound by the terms and provision of this agreement.
+          By accessing and using LastBench, you accept and agree to be bound by the terms and provisions of this agreement.
         </p>
       </section>
 

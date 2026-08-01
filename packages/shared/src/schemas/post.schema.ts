@@ -6,8 +6,9 @@ export const createPostSchema = z.object({
   content: z.string().min(1, 'Post content is required').max(10000),
   communityId: z.string().min(1),
   isAnonymous: z.boolean().default(true),
-  type: z.enum(['TEXT', 'IMAGE', 'POLL', 'LINK']).default('TEXT'),
+  type: z.enum(['TEXT', 'IMAGE', 'POLL', 'LINK', 'VIDEO']).default('TEXT'),
   mediaUrls: z.array(z.string().url()).max(4).optional(),
+  linkUrl: z.string().url('Invalid link URL').optional().nullable(),
   tags: z.array(z.string().max(30)).max(5).optional(),
   poll: z
     .object({
@@ -31,9 +32,11 @@ export const updatePostSchema = z.object({
 export const feedQuerySchema = z.object({
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
-  sort: z.enum(['hot', 'new', 'top']).default('hot'),
-  timeRange: z.enum(['day', 'week', 'month', 'year', 'all']).default('week'),
+  sort: z.preprocess((val) => (typeof val === 'string' ? val.toLowerCase() : val), z.enum(['hot', 'new', 'top'])).default('hot'),
+  timeRange: z.preprocess((val) => (typeof val === 'string' ? val.toLowerCase() : val), z.enum(['day', 'week', 'month', 'year', 'all'])).optional(),
   communityId: z.string().optional(),
+  authorId: z.string().optional(),
+  authorUsername: z.string().optional(),
 });
 
 // ─── Vote ────────────────────────────────────────────

@@ -12,7 +12,13 @@ export const createCommunitySchema = z.object({
     .max(50)
     .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
   description: z.string().max(500).optional(),
-  category: z.enum(['general', 'academic', 'hostel', 'placement', 'memes', 'events', 'sports', 'clubs', 'market']).optional(),
+  category: z
+    .preprocess(
+      (val) => (typeof val === 'string' ? val.toLowerCase().trim() : val),
+      z.enum(['general', 'academic', 'hostel', 'placement', 'memes', 'events', 'sports', 'clubs', 'market'])
+    )
+    .optional()
+    .default('general'),
 });
 
 // ─── Update Community ────────────────────────────────

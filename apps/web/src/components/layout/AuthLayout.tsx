@@ -1,6 +1,7 @@
 import { Outlet, Link, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/auth-store';
+import { Shield, Users, BarChart3, Zap } from 'lucide-react';
 
 export function AuthLayout() {
   const { isAuthenticated, isLoading, user } = useAuthStore();
@@ -8,62 +9,80 @@ export function AuthLayout() {
 
   if (isLoading) return null;
   if (isAuthenticated && location.pathname !== '/verify-email') {
-    // Google OAuth signups get routed to /onboarding directly by the API
-    // redirect. Email/password signups land here (on /register, now
-    // authenticated) and, without this check, would go straight to /feed
-    // having never been asked for branch/year. Route both paths the same
-    // way: incomplete profile -> onboarding, complete profile -> feed.
-    const needsOnboarding = !user?.onboardingCompleted;
+    const needsOnboarding = user?.onboardingCompleted === false;
     return <Navigate to={needsOnboarding ? '/onboarding' : '/feed'} replace />;
   }
 
-  return (
-    <div className="min-h-screen flex">
-      {/* Left side — branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-violet-950 via-purple-900 to-fuchsia-950 items-center justify-center p-12">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-violet-500/10 blur-3xl" />
-          <div className="absolute -bottom-1/4 -right-1/4 w-[500px] h-[500px] rounded-full bg-fuchsia-500/10 blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-purple-500/5 blur-2xl animate-glow" />
-        </div>
+  const features = [
+    { icon: Shield, title: 'Anonymous & Authentic', desc: 'Share campus thoughts safely or post with your profile' },
+    { icon: Users, title: 'Campus Groups', desc: 'Join department channels, branch hubs, and interest groups' },
+    { icon: BarChart3, title: 'Live Polls', desc: 'Vote and see instant feedback on real student topics' },
+    { icon: Zap, title: 'Instant Activity', desc: 'Realtime updates on what is happening across your campus' },
+  ];
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="relative z-10 text-center space-y-8"
-        >
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-400 to-fuchsia-500 flex items-center justify-center mx-auto shadow-2xl shadow-violet-500/30">
-            <span className="text-white font-black text-3xl">L</span>
+  return (
+    <div className="min-h-screen flex bg-background">
+      {/* Left side — branding panel */}
+      <div className="hidden lg:flex lg:w-5/12 bg-card border-r border-border flex-col justify-between p-12 relative overflow-hidden">
+        <div>
+          <Link to="/feed" className="flex items-center gap-2 text-foreground font-bold text-xl">
+            <div className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+              LB
+            </div>
+            <span>LastBench</span>
+          </Link>
+          
+          <div className="mt-16 space-y-3">
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Your campus hub.</h1>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Connect with fellow students, discuss classes, create polls, and explore groups.
+            </p>
           </div>
-          <div>
-            <h1 className="text-5xl font-black text-white tracking-tight">LastBench</h1>
-            <p className="text-violet-200/80 text-lg mt-3 max-w-sm mx-auto">Your campus. Unfiltered.</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3 text-sm">
-            {['Anonymous Posts', 'Groups', 'Polls', 'Realtime', 'Dark Mode'].map((tag) => (
-              <span key={tag} className="px-4 py-2 rounded-full bg-white/10 text-violet-200 backdrop-blur-sm border border-white/10">
-                {tag}
-              </span>
+
+          <div className="mt-12 space-y-6">
+            {features.map((f, i) => (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * i, duration: 0.3 }}
+                className="flex items-start gap-3.5"
+              >
+                <div className="w-9 h-9 rounded-lg bg-secondary border border-border flex items-center justify-center text-primary flex-shrink-0 mt-0.5">
+                  <f.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">{f.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{f.desc}</p>
+                </div>
+              </motion.div>
             ))}
           </div>
-        </motion.div>
+        </div>
+
+        <div className="pt-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+          <span>&copy; {new Date().getFullYear()} LastBench</span>
+          <span>Campus Unfiltered</span>
+        </div>
       </div>
 
-      {/* Right side — form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+      {/* Right side — form outlet */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
           className="w-full max-w-md"
         >
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-10">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto shadow-lg shadow-violet-500/20 mb-4">
-              <span className="text-white font-black text-xl">L</span>
-            </div>
-            <h1 className="text-3xl font-black gradient-text">LastBench</h1>
+          {/* Mobile header */}
+          <div className="lg:hidden text-center mb-8">
+            <Link to="/feed" className="inline-flex items-center gap-2 text-foreground font-bold text-2xl mb-2">
+              <div className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                LB
+              </div>
+              <span>LastBench</span>
+            </Link>
+            <p className="text-sm text-muted-foreground">Your campus. Unfiltered.</p>
           </div>
 
           <Outlet />

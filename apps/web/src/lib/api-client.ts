@@ -1,4 +1,5 @@
 import type { ApiResponse, PaginatedResponse } from '@lastbench/shared';
+import type { Post, Community, CommunityMember, User, Comment, Notification } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -92,15 +93,15 @@ class ApiClient {
   // Posts
   async getFeed(params: Record<string, string> = {}) {
     const search = new URLSearchParams(params).toString();
-    return this.request<PaginatedResponse<Record<string, unknown>>>(`/posts?${search}`);
+    return this.request<PaginatedResponse<Post>>(`/posts?${search}`);
   }
 
   async getPost(id: string) {
-    return this.request<Record<string, unknown>>(`/posts/${id}`);
+    return this.request<Post>(`/posts/${id}`);
   }
 
   async createPost(body: Record<string, unknown>) {
-    return this.request<Record<string, unknown>>('/posts', {
+    return this.request<Post>('/posts', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -124,14 +125,26 @@ class ApiClient {
     return this.request(`/posts/${id}`, { method: 'DELETE' });
   }
 
+  async reportPost(postId: string, reason: string) {
+    return this.request('/admin/reports', {
+      method: 'POST',
+      body: JSON.stringify({ postId, reason }),
+    });
+  }
+
+  async getUserPosts(params: Record<string, string> = {}) {
+    const search = new URLSearchParams(params).toString();
+    return this.request<PaginatedResponse<Post>>(`/posts?${search}`);
+  }
+
   // Comments
   async getComments(params: Record<string, string>) {
     const search = new URLSearchParams(params).toString();
-    return this.request<PaginatedResponse<Record<string, unknown>>>(`/comments?${search}`);
+    return this.request<PaginatedResponse<Comment>>(`/comments?${search}`);
   }
 
   async createComment(body: Record<string, unknown>) {
-    return this.request<Record<string, unknown>>('/comments', {
+    return this.request<Comment>('/comments', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -151,17 +164,38 @@ class ApiClient {
   // Communities
   async getCommunities(params: Record<string, string> = {}) {
     const search = new URLSearchParams(params).toString();
-    return this.request<PaginatedResponse<Record<string, unknown>>>(
+    return this.request<PaginatedResponse<Community>>(
       search ? `/communities?${search}` : '/communities',
     );
   }
 
   async getCommunity(slug: string) {
-    return this.request<Record<string, unknown>>(`/communities/${slug}`);
+    return this.request<Community>(`/communities/${slug}`);
   }
 
-  async getCommunityMembers(id: string) {
-    return this.request<Record<string, unknown>[]>(`/communities/${id}/members`);
+  async getCommunityMembers(slug: string, params: Record<string, string> = {}) {
+    const search = new URLSearchParams(params).toString();
+    return this.request<PaginatedResponse<CommunityMember>>(
+      search ? `/communities/${slug}/members?${search}` : `/communities/${slug}/members`
+    );
+  }
+
+  async deleteCommunity(slug: string) {
+    return this.request<{ success: boolean }>(`/communities/${slug}`, { method: 'DELETE' });
+  }
+
+  async createCommunity(body: Record<string, unknown>) {
+    return this.request<Community>('/communities', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async updateCommunity(slug: string, body: Record<string, unknown>) {
+    return this.request<Community>(`/communities/${slug}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
   }
 
   async joinCommunity(id: string) {
@@ -172,10 +206,32 @@ class ApiClient {
     return this.request(`/communities/${id}/leave`, { method: 'POST' });
   }
 
+  async updateMemberRole(slug: string, userId: string, role: 'MOD' | 'MEMBER') {
+    return this.request(`/communities/${slug}/members/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async removeCommunityMember(slug: string, userId: string) {
+    return this.request(`/communities/${slug}/members/${userId}`, { method: 'DELETE' });
+  }
+
+  async transferOwnership(slug: string, newOwnerId: string) {
+    return this.request(`/communities/${slug}/transfer-ownership`, {
+      method: 'POST',
+      body: JSON.stringify({ newOwnerId }),
+    });
+  }
+
+  async getUserProfile(username: string) {
+    return this.request<User>(`/auth/user/${username}`);
+  }
+
   // Notifications
   async getNotifications(params: Record<string, string> = {}) {
     const search = new URLSearchParams(params).toString();
-    return this.request<PaginatedResponse<Record<string, unknown>>>(`/notifications?${search}`);
+    return this.request<PaginatedResponse<Notification>>(`/notifications?${search}`);
   }
 
   async getUnreadCount() {

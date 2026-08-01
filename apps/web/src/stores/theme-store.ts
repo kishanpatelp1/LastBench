@@ -2,7 +2,9 @@ import { create } from 'zustand';
 
 interface ThemeState {
   isDark: boolean;
+  theme: 'dark' | 'light';
   toggle: () => void;
+  toggleTheme: () => void;
   setDark: (dark: boolean) => void;
 }
 
@@ -13,18 +15,27 @@ if (typeof document !== 'undefined') {
 
 export const useThemeStore = create<ThemeState>((set) => ({
   isDark: initialDark,
+  theme: initialDark ? 'dark' : 'light',
 
   toggle: () =>
     set((state) => {
       const next = !state.isDark;
       localStorage.setItem('lastbench-theme', next ? 'dark' : 'light');
       document.documentElement.classList.toggle('dark', next);
-      return { isDark: next };
+      return { isDark: next, theme: next ? 'dark' : 'light' };
+    }),
+
+  toggleTheme: () =>
+    set((state) => {
+      const next = !state.isDark;
+      localStorage.setItem('lastbench-theme', next ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', next);
+      return { isDark: next, theme: next ? 'dark' : 'light' };
     }),
 
   setDark: (dark) => {
     localStorage.setItem('lastbench-theme', dark ? 'dark' : 'light');
     document.documentElement.classList.toggle('dark', dark);
-    set({ isDark: dark });
+    set({ isDark: dark, theme: dark ? 'dark' : 'light' });
   },
 }));

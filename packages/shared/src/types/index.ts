@@ -37,7 +37,8 @@ export interface PostItem {
   id: string;
   title: string | null;
   content: string;
-  type: 'TEXT' | 'IMAGE' | 'POLL' | 'LINK';
+  type: 'TEXT' | 'IMAGE' | 'POLL' | 'LINK' | 'VIDEO';
+  linkUrl?: string | null;
   isAnonymous: boolean;
   mediaUrls: string[];
   tags: string[];

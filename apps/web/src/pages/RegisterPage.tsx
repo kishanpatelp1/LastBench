@@ -173,19 +173,17 @@ export function RegisterPage() {
           </div>
         </div>
 
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
+        <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-violet-500/25 disabled:opacity-50 transition-all cursor-pointer"
+          className="w-full py-3 rounded-md bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-50 transition-colors cursor-pointer"
         >
           {isSubmitting ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
             <>Create Account <ArrowRight size={18} /></>
           )}
-        </motion.button>
+        </button>
       </form>
 
       <p className="text-center text-muted-foreground text-sm">

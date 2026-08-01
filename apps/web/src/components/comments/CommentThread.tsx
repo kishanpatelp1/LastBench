@@ -32,7 +32,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
 
   const handleSubmit = async () => {
     if (!isAuthenticated) {
-      toast.error('Please login to comment');
+      toast.error('Please sign in to comment');
       navigate('/login');
       return;
     }
@@ -56,8 +56,8 @@ export function CommentThread({ postId }: CommentThreadProps) {
     }
   };
 
-  const CommentItem = ({ comment, depth = 0 }: { comment: Record<string, unknown>; depth?: number }) => {
-    const author = comment.author as Record<string, unknown>;
+  const CommentItem = ({ comment, depth = 0 }: { comment: any; depth?: number }) => {
+    const author = (comment.author as Record<string, unknown>) ?? {};
     const replies = (comment.replies as Array<Record<string, unknown>>) ?? [];
     const [reportModalOpen, setReportModalOpen] = useState(false);
 
@@ -74,7 +74,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
 
     const handleCommentVote = async (type: 'UP' | 'DOWN') => {
       if (!isAuthenticated) {
-        toast.error('Please login to vote');
+        toast.error('Please sign in to vote');
         navigate('/login');
         return;
       }
@@ -120,7 +120,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
             <button
               onClick={() => {
                 if (!isAuthenticated) {
-                  toast.error('Please login to reply');
+                  toast.error('Please sign in to reply');
                   navigate('/login');
                   return;
                 }
@@ -144,7 +144,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
               <button
                 onClick={() => {
                   if (!isAuthenticated) {
-                    toast.error('Please login to report content');
+                    toast.error('Please sign in to report content');
                     navigate('/login');
                     return;
                   }
@@ -179,7 +179,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
                 onClick={() => navigate('/login')}
                 className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                Login
+                Sign In
               </button>
               <button
                 onClick={() => navigate('/register')}

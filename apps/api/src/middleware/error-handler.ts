@@ -1,5 +1,4 @@
 import type { Request, Response, NextFunction } from 'express';
-import { Prisma } from '@prisma/client';
 import { logger } from '../lib/logger.js';
 
 export class AppError extends Error {
@@ -14,18 +13,31 @@ export class AppError extends Error {
 }
 
 /**
- * Turn a Prisma "known request" error into a friendly AppError.
- *
- * Every service in this app does a check-then-write (e.g. "is this username
- * taken?" then "create the user"). Under concurrent requests that check can
- * pass for two requests at once, and the *second* write fails at the DB
- * unique-constraint level, not at the check. Without this, that race turns
- * into a raw "Internal server error" instead of the same friendly message
- * the pre-check would have given. Centralizing it here means every module
- * (auth, posts, comments, communities, ...) gets this safety for free.
+ * Duck-type a Prisma "known request" error instead of `instanceof
+ * Prisma.PrismaClientKnownRequestError`. Prisma's error classes are
+ * regenerated per-project by `prisma generate` against a downloaded engine
+ * binary; an `instanceof` check silently stops matching if that class
+ * identity ever diverges (e.g. two @prisma/client copies in node_modules,
+ * or the client being unavailable in this environment). The shape below —
+ * `name` + string `code` — is stable across Prisma versions and lets this
+ * logic run and be unit-tested without depending on a generated client.
  */
-function normalizePrismaError(err: unknown): AppError | null {
-  if (!(err instanceof Prisma.PrismaClientKnownRequestError)) return null;
+function isPrismaKnownRequestError(
+  err: unknown,
+): err is { code: string; meta?: { target?: string[] } } {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { name?: unknown }).name === 'PrismaClientKnownRequestError' &&
+    typeof (err as { code?: unknown }).code === 'string'
+  );
+}
+
+/**
+ * Turn a Prisma "known request" error into a friendly AppError.
+ */
+export function normalizePrismaError(err: unknown): AppError | null {
+  if (!isPrismaKnownRequestError(err)) return null;
 
   switch (err.code) {
     case 'P2002': {

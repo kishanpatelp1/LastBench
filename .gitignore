@@ -46,3 +46,4 @@ coverage/
 *.zip
 *.tar.gz
 *.tgz
+.zip-extracted/

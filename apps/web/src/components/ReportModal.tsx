@@ -5,10 +5,12 @@ import { api } from '../lib/api-client';
 import { toast } from 'sonner';
 
 interface ReportModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
-  targetId: string;
-  targetType: 'POST' | 'COMMENT';
+  targetId?: string;
+  targetType?: 'POST' | 'COMMENT';
+  entityId?: string;
+  entityType?: 'POST' | 'COMMENT';
 }
 
 const reasons = [
@@ -22,12 +24,15 @@ const reasons = [
   { value: 'other', label: 'Other issue', desc: 'Anything else violating campus decorum or guidelines' },
 ] as const;
 
-export function ReportModal({ isOpen, onClose, targetId, targetType }: ReportModalProps) {
+export function ReportModal({ isOpen = true, onClose, targetId, targetType, entityId, entityType }: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState<typeof reasons[number]['value']>('spam');
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen) return null;
+  const finalId = entityId ?? targetId;
+  const finalType = entityType ?? targetType ?? 'POST';
+
+  if (!isOpen || !finalId) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +40,12 @@ export function ReportModal({ isOpen, onClose, targetId, targetType }: ReportMod
 
     try {
       await api.createReport({
-        [targetType === 'POST' ? 'postId' : 'commentId']: targetId,
+        [finalType === 'POST' ? 'postId' : 'commentId']: finalId,
         reason: selectedReason,
         details: details.trim() ? details.trim() : undefined,
       });
 
-      toast.success('Report submitted to moderators. Thank you for helping keep the campus community safe!');
+      toast.success('Report submitted. Our moderators will review it shortly.');
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to submit report');
