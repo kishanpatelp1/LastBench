@@ -52,9 +52,7 @@ export function LandingPage() {
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="text-white font-black text-base tracking-tight">LB</span>
-            </div>
+            <img src="/favicon.svg" alt="LastBench Logo" className="w-9 h-9 rounded-xl object-contain shadow-lg shadow-primary/20" />
             <span className="font-extrabold text-white text-lg tracking-tight">LastBench</span>
           </div>
 
@@ -65,8 +63,8 @@ export function LandingPage() {
             <Link to="/login" className="px-4 py-2 text-xs font-semibold text-white/80 hover:text-white transition-colors">
               Sign In
             </Link>
-            <Link to="/register" className="px-4 py-2 text-xs font-bold bg-primary text-white rounded-full hover:bg-primary/90 transition-all shadow-md shadow-primary/25 flex items-center gap-1">
-              Join Campus <ArrowRight size={14} />
+            <Link to="/feed" className="px-4 py-2 text-xs font-bold bg-primary text-white rounded-full hover:bg-primary/90 transition-all shadow-md shadow-primary/25 flex items-center gap-1">
+              Explore Campus <ArrowRight size={14} />
             </Link>
           </div>
         </div>
@@ -99,7 +97,7 @@ export function LandingPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
               <Link
-                to="/register"
+                to="/feed"
                 className="w-full sm:w-auto px-8 py-3.5 bg-primary text-white font-bold rounded-full hover:bg-primary/90 transition-all text-sm shadow-lg shadow-primary/30 flex items-center justify-center gap-2"
               >
                 <span>Get Started Free</span>
@@ -251,10 +249,10 @@ export function LandingPage() {
 
           <div className="pt-2">
             <Link
-              to="/register"
+              to="/feed"
               className="inline-flex px-8 py-3.5 bg-primary text-white font-bold rounded-full hover:bg-primary/90 transition-all text-sm shadow-xl shadow-primary/40 gap-2 items-center"
             >
-              <span>Join LastBench Now</span>
+              <span>Explore LastBench Feed</span>
               <ArrowRight size={16} />
             </Link>
           </div>

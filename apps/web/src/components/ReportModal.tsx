@@ -37,11 +37,22 @@ export function ReportModal({ isOpen = true, onClose, targetId, targetType, enti
     setIsSubmitting(true);
 
     try {
-      await api.createReport({
-        [finalType === 'POST' ? 'postId' : 'commentId']: finalId,
-        reason: selectedReason,
-        details: details.trim() ? details.trim() : undefined,
-      });
+      const payload: Record<string, unknown> = {
+        reason: (selectedReason || 'other').toLowerCase(),
+      };
+
+      if (finalType === 'COMMENT') {
+        payload.commentId = finalId;
+      } else {
+        payload.postId = finalId;
+      }
+
+      const trimmedDetails = details.trim();
+      if (trimmedDetails.length > 0) {
+        payload.details = trimmedDetails;
+      }
+
+      await api.createReport(payload);
 
       toast.success('Report submitted. Our moderators will review it shortly.');
       onClose();

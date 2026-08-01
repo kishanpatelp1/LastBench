@@ -11,6 +11,14 @@ export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const handleBack = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/feed');
+    }
+  };
+
   const { data: post, isLoading: isPostLoading, error } = useQuery({
     queryKey: ['post', id],
     queryFn: () => api.getPost(id!),
@@ -46,8 +54,8 @@ export function PostDetailPage() {
           <h2 className="text-xl font-bold mb-2">Post not found</h2>
           <p className="text-muted-foreground mb-4">This post may have been deleted or does not exist.</p>
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90"
+            onClick={handleBack}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 cursor-pointer"
           >
             <ArrowLeft size={16} /> Go Back
           </button>
@@ -62,10 +70,10 @@ export function PostDetailPage() {
     <div className="max-w-5xl mx-auto px-4 py-4 flex gap-6">
       <div className="flex-1 min-w-0 space-y-3">
         <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors"
+          onClick={handleBack}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors cursor-pointer"
         >
-          <ArrowLeft size={14} /> Back
+          <ArrowLeft size={14} /> Back to Feed
         </button>
 
         <PostCard post={post} />

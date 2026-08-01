@@ -303,34 +303,36 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
 
       {/* Collapsed state */}
       {!isOpen && (
-        <div className="p-3">
-          <div className="flex items-center gap-3">
+        <div className="p-2.5 sm:p-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full object-cover border border-border flex-shrink-0" />
+              <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full object-cover border border-border shrink-0" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
                 {user?.displayName?.[0]?.toUpperCase() ?? user?.username?.[0]?.toUpperCase() ?? 'U'}
               </div>
             )}
             <button
               onClick={() => setIsOpen(true)}
-              className="flex-1 text-left px-4 py-2 bg-secondary rounded-full text-sm text-muted-foreground hover:bg-secondary/80 transition-colors font-medium flex items-center gap-2 cursor-pointer"
+              className="flex-1 min-w-0 text-left px-3 sm:px-4 py-2 bg-secondary rounded-full text-xs sm:text-sm text-muted-foreground hover:bg-secondary/80 transition-colors font-medium flex items-center gap-2 cursor-pointer truncate"
             >
-              <PenSquare size={14} className="text-primary" />
-              <span>Create a post or share something with campus...</span>
+              <PenSquare size={14} className="text-primary shrink-0" />
+              <span className="truncate">Create a post or share with campus...</span>
             </button>
-            <button onClick={() => { setIsOpen(true); setPostType('IMAGE'); }} className="p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Add image">
-              <ImageIcon size={18} />
-            </button>
-            <button onClick={() => { setIsOpen(true); setPostType('VIDEO'); }} className="p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Add video">
-              <Video size={18} />
-            </button>
-            <button onClick={() => { setIsOpen(true); setPostType('LINK'); }} className="p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Embed link">
-              <LinkIcon size={18} />
-            </button>
-            <button onClick={() => { setIsOpen(true); setPostType('POLL'); }} className="p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Create poll">
-              <BarChart3 size={18} />
-            </button>
+            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+              <button onClick={() => { setIsOpen(true); setPostType('IMAGE'); }} className="p-1.5 sm:p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Add image">
+                <ImageIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
+              </button>
+              <button onClick={() => { setIsOpen(true); setPostType('VIDEO'); }} className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Add video">
+                <Video size={18} />
+              </button>
+              <button onClick={() => { setIsOpen(true); setPostType('LINK'); }} className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Embed link">
+                <LinkIcon size={18} />
+              </button>
+              <button onClick={() => { setIsOpen(true); setPostType('POLL'); }} className="p-1.5 sm:p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Create poll">
+                <BarChart3 size={16} className="sm:w-[18px] sm:h-[18px]" />
+              </button>
+            </div>
           </div>
         </div>
       )}

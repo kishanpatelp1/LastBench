@@ -52,17 +52,16 @@ export const createReportSchema = z.object({
   postId: z.string().min(1).optional(),
   commentId: z.string().min(1).optional(),
   userId: z.string().min(1).optional(),
-  reason: z.enum([
-    'spam',
-    'harassment',
-    'hate_speech',
-    'violence',
-    'misinformation',
-    'nsfw',
-    'doxxing',
-    'other',
-  ]),
-  details: z.string().max(1000).optional(),
+  reason: z.preprocess(
+    (v) => (typeof v === 'string' ? v.toLowerCase().trim() : v),
+    z.enum(['spam', 'harassment', 'hate_speech', 'violence', 'misinformation', 'nsfw', 'doxxing', 'other'], {
+      errorMap: () => ({ message: 'Please select a valid report reason.' }),
+    })
+  ),
+  details: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().max(1000).optional()
+  ),
 });
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;

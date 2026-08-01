@@ -68,17 +68,46 @@ export function PostCard({ post }: PostCardProps) {
   const canReport = isAuthenticated && !isAuthor;
   const showMenu = isAuthenticated;
 
-  const currentVote = post.userVote;
-  const isUpvoted = currentVote === 'UP';
-  const isDownvoted = currentVote === 'DOWN';
+  const [optimisticVote, setOptimisticVote] = useState<'UP' | 'DOWN' | null>(post.userVote ?? null);
+  const [optimisticScore, setOptimisticScore] = useState<number>(post.score ?? 0);
 
-  const handleVote = async (e: React.MouseEvent, type: 'UP' | 'DOWN') => {
+  useEffect(() => {
+    setOptimisticVote(post.userVote ?? null);
+    setOptimisticScore(post.score ?? 0);
+  }, [post.userVote, post.score]);
+
+  const isUpvoted = optimisticVote === 'UP';
+  const isDownvoted = optimisticVote === 'DOWN';
+
+  const handleVote = async (e: React.SyntheticEvent, type: 'UP' | 'DOWN') => {
     e.stopPropagation();
+    e.preventDefault();
     if (!isAuthenticated) {
       toast.error('Please sign in to vote');
       navigate('/login');
       return;
     }
+
+    const prevVote = optimisticVote;
+    const prevScore = optimisticScore;
+
+    let nextVote: 'UP' | 'DOWN' | null = type;
+    let scoreDelta = 0;
+
+    if (prevVote === type) {
+      nextVote = null;
+      scoreDelta = type === 'UP' ? -1 : 1;
+    } else if (prevVote === null) {
+      nextVote = type;
+      scoreDelta = type === 'UP' ? 1 : -1;
+    } else {
+      nextVote = type;
+      scoreDelta = type === 'UP' ? 2 : -2;
+    }
+
+    // Instant zero-latency local update
+    setOptimisticVote(nextVote);
+    setOptimisticScore(prevScore + scoreDelta);
 
     try {
       await api.votePost(post.id, type);
@@ -86,6 +115,8 @@ export function PostCard({ post }: PostCardProps) {
       queryClient.invalidateQueries({ queryKey: ['post', post.id] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     } catch (err: unknown) {
+      setOptimisticVote(prevVote);
+      setOptimisticScore(prevScore);
       toast.error(err instanceof Error ? err.message : 'Failed to vote');
     }
   };
@@ -172,8 +203,11 @@ export function PostCard({ post }: PostCardProps) {
       {/* VOTE SIDEBAR */}
       <div className="flex flex-col items-center py-2 px-1.5 bg-secondary/30 rounded-l-md border-r border-border shrink-0 select-none">
         <button
+          type="button"
           onClick={(e) => handleVote(e, 'UP')}
-          className={`p-1 rounded hover:bg-secondary transition-colors cursor-pointer ${
+          onTouchEnd={(e) => handleVote(e, 'UP')}
+          style={{ touchAction: 'manipulation' }}
+          className={`p-1 rounded hover:bg-secondary transition-colors cursor-pointer active:scale-125 ${
             isUpvoted ? 'text-orange-500' : 'text-muted-foreground hover:text-foreground'
           }`}
           title="Upvote"
@@ -184,12 +218,15 @@ export function PostCard({ post }: PostCardProps) {
         <span className={`text-xs font-bold my-0.5 ${
           isUpvoted ? 'text-orange-500' : isDownvoted ? 'text-indigo-500' : 'text-foreground'
         }`}>
-          {post.score}
+          {optimisticScore}
         </span>
 
         <button
+          type="button"
           onClick={(e) => handleVote(e, 'DOWN')}
-          className={`p-1 rounded hover:bg-secondary transition-colors cursor-pointer ${
+          onTouchEnd={(e) => handleVote(e, 'DOWN')}
+          style={{ touchAction: 'manipulation' }}
+          className={`p-1 rounded hover:bg-secondary transition-colors cursor-pointer active:scale-125 ${
             isDownvoted ? 'text-indigo-500' : 'text-muted-foreground hover:text-foreground'
           }`}
           title="Downvote"

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
+  <defs>
+    <linearGradient id="benchBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#5b21b6" />
+    </linearGradient>
+    <linearGradient id="woodPlank" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded Background Container -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#benchBg)" />
+
+  <!-- Bench Backrest Slats (Indian Wooden Slats) -->
+  <rect x="14" y="16" width="36" height="5" rx="2.5" fill="url(#woodPlank)" />
+  <rect x="14" y="23" width="36" height="5" rx="2.5" fill="url(#woodPlank)" opacity="0.95" />
+
+  <!-- Bench Seat Slats -->
+  <rect x="12" y="33" width="40" height="6" rx="3" fill="url(#woodPlank)" />
+
+  <!-- Metal Bench Frame (Backrest Supports & Legs) -->
+  <path d="M 17,16 L 17,45 M 47,16 L 47,45" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+  <!-- Diagonal Stays & Front Legs -->
+  <path d="M 14,35 L 14,48 M 50,35 L 50,48 M 17,40 L 12,48 M 47,40 L 52,48" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- LastBench "LB" Monogram Subscript Badge -->
+  <text x="32" y="57" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">LB</text>
+</svg>
