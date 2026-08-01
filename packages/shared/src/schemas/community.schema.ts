@@ -12,6 +12,8 @@ export const createCommunitySchema = z.object({
     .max(50)
     .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
   description: z.string().max(500).optional(),
+  avatarUrl: z.string().optional(),
+  bannerUrl: z.string().optional(),
   category: z
     .preprocess(
       (val) => (typeof val === 'string' ? val.toLowerCase().trim() : val),
@@ -39,6 +41,8 @@ export const searchQuerySchema = z.object({
 
 // ─── Query Communities ───────────────────────────────
 export const communitiesQuerySchema = z.object({
+  category: z.preprocess((v) => (typeof v === 'string' ? v.toLowerCase().trim() || undefined : v), z.enum(['general', 'academic', 'hostel', 'placement', 'memes', 'events', 'sports', 'clubs', 'market']).optional()),
+  search: z.preprocess((v) => (typeof v === 'string' ? v.trim() || undefined : v), z.string().max(200).optional()),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });

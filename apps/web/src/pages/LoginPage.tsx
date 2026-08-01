@@ -122,10 +122,11 @@ export function LoginPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Email */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Email</label>
+          <label htmlFor="login-email" className="text-sm font-medium text-foreground">Email</label>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
             <input
+              id="login-email"
               {...register('email')}
               type="email"
               disabled={isSubmitting}
@@ -138,10 +139,11 @@ export function LoginPage() {
 
         {/* Password */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Password</label>
+          <label htmlFor="login-password" className="text-sm font-medium text-foreground">Password</label>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
             <input
+              id="login-password"
               {...register('password')}
               type={showPassword ? 'text' : 'password'}
               disabled={isSubmitting}

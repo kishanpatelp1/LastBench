@@ -4,6 +4,9 @@ async function seed() {
   console.log('🌱 Seeding campus database...');
 
   // Clean existing data to avoid unique constraint issues
+  await prisma.report.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.communityRule.deleteMany({});
   await prisma.pollVote.deleteMany({});
   await prisma.vote.deleteMany({});
   await prisma.comment.deleteMany({});

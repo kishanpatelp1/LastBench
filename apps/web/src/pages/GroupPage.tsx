@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Calendar, Settings, Crown, Shield, SortAsc } from 'lucide-react';
+import { Users, Calendar, Settings, Crown, Shield, SortAsc, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { api } from '../lib/api-client';
@@ -159,16 +159,23 @@ export function GroupPage() {
                   <Settings size={15} />
                 </button>
               )}
-              <button
-                onClick={toggleMembership}
-                className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors cursor-pointer ${
-                  isMember
-                    ? 'border-border text-foreground hover:bg-secondary hover:text-destructive hover:border-destructive/50'
-                    : 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90'
-                }`}
-              >
-                {isMember ? 'Joined ✓' : 'Join'}
-              </button>
+              {community.isDefault || community.slug === 'general' ? (
+                <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-primary/10 border border-primary/20 text-primary flex items-center gap-1.5">
+                  <Globe size={13} /> Default Campus Feed
+                </span>
+              ) : (
+                <button
+                  onClick={toggleMembership}
+                  disabled={isJoining}
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors cursor-pointer ${
+                    isMember
+                      ? 'border-border text-foreground hover:bg-secondary hover:text-destructive hover:border-destructive/50'
+                      : 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90'
+                  }`}
+                >
+                  {isMember ? 'Joined ✓' : 'Join'}
+                </button>
+              )}
             </div>
           </div>
 

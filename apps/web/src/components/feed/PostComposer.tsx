@@ -390,6 +390,9 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
                     <div className="relative">
                       <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input
+                        id="composer-group-search"
+                        name="groupSearch"
+                        aria-label="Search groups"
                         type="text"
                         value={groupSearch}
                         onChange={(e) => setGroupSearch(e.target.value)}
@@ -629,6 +632,9 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
                     {pollOptions.map((opt, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <input
+                          id={`composer-poll-option-${i}`}
+                          name={`pollOption_${i}`}
+                          aria-label={`Poll Option ${i + 1}`}
                           type="text"
                           value={opt}
                           onChange={(e) => handleOptionChange(i, e.target.value)}
@@ -662,6 +668,9 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
 
               {/* Hidden file inputs */}
               <input
+                id="composer-image-file-input"
+                name="imageFileInput"
+                aria-label="Upload image files"
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
@@ -670,6 +679,9 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
                 className="hidden"
               />
               <input
+                id="composer-video-file-input"
+                name="videoFileInput"
+                aria-label="Upload video file"
                 ref={videoInputRef}
                 type="file"
                 accept="video/*"

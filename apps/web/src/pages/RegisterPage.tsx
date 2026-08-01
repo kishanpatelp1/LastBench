@@ -125,37 +125,37 @@ export function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Username</label>
+            <label htmlFor="reg-username" className="text-sm font-medium text-foreground">Username</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input {...register('username')} disabled={isSubmitting} placeholder="anon_coder" className={inputClass} />
+              <input id="reg-username" {...register('username')} disabled={isSubmitting} placeholder="anon_coder" className={inputClass} />
             </div>
             {errors.username && <p className="text-xs text-red-400">{errors.username.message}</p>}
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Display Name</label>
+            <label htmlFor="reg-display-name" className="text-sm font-medium text-foreground">Display Name</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input {...register('displayName')} disabled={isSubmitting} placeholder="Display Name" className={inputClass} />
+              <input id="reg-display-name" {...register('displayName')} disabled={isSubmitting} placeholder="Display Name" className={inputClass} />
             </div>
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Email</label>
+          <label htmlFor="reg-email" className="text-sm font-medium text-foreground">Email</label>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <input {...register('email')} disabled={isSubmitting} type="email" placeholder="you@college.edu" className={inputClass} />
+            <input id="reg-email" {...register('email')} disabled={isSubmitting} type="email" placeholder="you@college.edu" className={inputClass} />
           </div>
           {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Password</label>
+          <label htmlFor="reg-password" className="text-sm font-medium text-foreground">Password</label>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <input {...register('password')} disabled={isSubmitting} type={showPassword ? 'text' : 'password'} placeholder="Min 8 chars, 1 uppercase, 1 number" className={`${inputClass} !pr-12`} />
+            <input id="reg-password" {...register('password')} disabled={isSubmitting} type={showPassword ? 'text' : 'password'} placeholder="Min 8 chars, 1 uppercase, 1 number" className={`${inputClass} !pr-12`} />
             <button type="button" disabled={isSubmitting} onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground cursor-pointer disabled:opacity-50">
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -165,10 +165,10 @@ export function RegisterPage() {
 
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Branch</label>
+            <label htmlFor="reg-branch" className="text-sm font-medium text-foreground">Branch</label>
             <div className="relative">
               <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input {...register('branch')} disabled={isSubmitting} placeholder="CS" className={inputClass} />
+              <input id="reg-branch" {...register('branch')} disabled={isSubmitting} placeholder="CS" className={inputClass} />
             </div>
           </div>
         </div>

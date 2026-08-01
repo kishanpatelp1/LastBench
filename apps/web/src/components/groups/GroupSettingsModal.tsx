@@ -243,7 +243,7 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
                     </div>
                   </div>
                 </div>
-                <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e.target.files, 'banner')} />
+                <input id="group-banner-file-input" name="bannerInput" aria-label="Upload group banner image" ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e.target.files, 'banner')} />
               </div>
 
               {/* Avatar upload */}
@@ -272,13 +272,16 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
                     <p>Recommended: 256×256px, PNG or JPG</p>
                   </div>
                 </div>
-                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e.target.files, 'avatar')} />
+                <input id="group-avatar-file-input" name="avatarInput" aria-label="Upload group avatar image" ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e.target.files, 'avatar')} />
               </div>
 
               {/* Description */}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Description</label>
+                <label htmlFor="group-description-input" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Description</label>
                 <textarea
+                  id="group-description-input"
+                  name="description"
+                  aria-label="Group description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Tell members what this group is about..."
