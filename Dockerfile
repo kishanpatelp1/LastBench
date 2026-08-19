@@ -11,11 +11,16 @@ RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
+
+# Prisma validates its datasource while generating the client. No database
+# connection is made during this image build; Render supplies the real URL at runtime.
+ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lastbench_build
+ENV DATABASE_URL=${DATABASE_URL}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY . .
-RUN pnpm --filter @lastbench/api exec prisma generate
 RUN pnpm --filter @lastbench/api build
 
 FROM base AS runner
