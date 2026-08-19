@@ -23,6 +23,7 @@ import './modules/auth/google.strategy.js'; // registers the strategy as a side-
 
 export function createApp(): Express {
   const app = express();
+  app.set('trust proxy', 1);
 
   // ─── Global Middleware ──────────────────────────
   app.use(compression());
@@ -65,7 +66,7 @@ export function createApp(): Express {
   // In development, 'dev' is colourful and concise for the terminal
   app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '256kb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   // Passport: initialize only — no session middleware (we use our own cookie-based sessions)

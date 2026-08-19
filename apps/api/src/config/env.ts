@@ -32,6 +32,15 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+}).superRefine((env, ctx) => {
+  const corsOrigins = env.CORS_ORIGIN.split(',').map((origin) => origin.trim());
+  if (env.NODE_ENV === 'production' && corsOrigins.includes('*')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['CORS_ORIGIN'],
+      message: 'CORS_ORIGIN cannot be "*" in production when credentials are enabled.',
+    });
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
+import type { NotificationType, Prisma } from '@prisma/client';
 
 export const notificationService = {
   async getByUser(userId: string, cursor?: string, limit: number = 20) {
@@ -39,10 +40,10 @@ export const notificationService = {
     return prisma.notification.create({
       data: {
         recipientId,
-        type: type as never,
+        type: type as NotificationType,
         title,
         body,
-        data: data ? (JSON.parse(JSON.stringify(data)) as never) : undefined,
+        data: data ? (JSON.parse(JSON.stringify(data)) as Prisma.InputJsonValue) : undefined,
       },
     });
   },

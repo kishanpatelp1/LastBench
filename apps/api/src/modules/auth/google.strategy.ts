@@ -17,8 +17,8 @@ logger.info(
  * Google OAuth 2.0 Strategy — session: false
  *
  * We do NOT use express-session. Our auth is entirely cookie-based with our
- * own Session table. Disabling Passport's built-in session support means we
- * lose the automatic CSRF "state" validation. Acceptable for this project.
+ * own Session table. CSRF protection is enforced via a dedicated, short-lived,
+ * httpOnly state cookie generated and validated across the OAuth dance in auth.route.ts.
  *
  * IMPORTANT — GOOGLE_CALLBACK_URL must route through the FRONTEND proxy:
  *   Dev:  http://localhost:3000/api/auth/google/callback  (Vite → API)

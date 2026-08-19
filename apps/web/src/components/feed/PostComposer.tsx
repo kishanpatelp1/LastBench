@@ -56,13 +56,13 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
 
   const { data: groups } = useQuery({
     queryKey: ['communities'],
-    queryFn: () => api.getCommunities({ limit: '50' }).then((res) => res.items as unknown as Community[]),
+    queryFn: () => api.getCommunities({ limit: '50' }).then((res) => res.items),
   });
 
   const [communityIdInitialized, setCommunityIdInitialized] = useState(false);
   useEffect(() => {
     if (!communityIdInitialized && !initialCommunityId && groups && groups.length > 0) {
-      const defaultGroup = groups.find((g: any) => g.isDefault) || groups[0];
+      const defaultGroup = groups.find((g) => g.isDefault) || groups[0];
       if (defaultGroup) setCommunityId(defaultGroup.id);
       setCommunityIdInitialized(true);
     }
@@ -148,8 +148,8 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
         setSelectedImages((prev) => [...prev, { url: res.url, file }]);
       }
       setPostType('IMAGE');
-    } catch (err: any) {
-      toast.error(err.message || 'Image upload failed');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Image upload failed');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -174,8 +174,8 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
       const res = await api.uploadFile(file);
       setSelectedVideo({ url: res.url, file });
       setPostType('VIDEO');
-    } catch (err: any) {
-      toast.error(err.message || 'Video upload failed');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Video upload failed');
     } finally {
       setIsUploading(false);
       if (videoInputRef.current) videoInputRef.current.value = '';
@@ -204,7 +204,7 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
   };
 
   const handleSubmit = async () => {
-    const targetCommunityId = communityId || groups?.find((g: any) => g.isDefault)?.id || groups?.[0]?.id;
+    const targetCommunityId = communityId || groups?.find((g) => g.isDefault)?.id || groups?.[0]?.id;
 
     if (!content.trim() || !targetCommunityId) {
       toast.error('Please enter post content');
@@ -265,8 +265,8 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
       handleClose();
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to create post');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create post');
     } finally {
       setIsSubmitting(false);
     }

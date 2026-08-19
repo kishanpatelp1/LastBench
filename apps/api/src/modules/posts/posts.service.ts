@@ -24,8 +24,8 @@ export const postService = {
         communityId: input.communityId,
         title: input.title ? sanitizeInput(input.title) : undefined,
         content: sanitizeInput(input.content),
-        type: (input.type as any) ?? 'TEXT',
-        linkUrl: (input as any).linkUrl || null,
+        type: input.type ?? 'TEXT',
+        linkUrl: input.linkUrl ?? null,
         isAnonymous: input.isAnonymous ?? true,
         mediaUrls: input.mediaUrls ?? [],
         tags: input.tags ?? [],
@@ -42,7 +42,7 @@ export const postService = {
               },
             }
           : undefined,
-      } as any,
+      },
       include: {
         author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
         community: { select: { id: true, name: true, slug: true, avatarUrl: true } },

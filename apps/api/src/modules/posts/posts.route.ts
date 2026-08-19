@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createPostSchema, feedQuerySchema, voteSchema, pollVoteSchema } from '@lastbench/shared';
+import { createPostSchema, feedQuerySchema, voteSchema, pollVoteSchema, type CreatePostInput, type FeedQuery, type VoteInput } from '@lastbench/shared';
 import { postService } from './posts.service.js';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth, requireVerifiedEmail, optionalAuth } from '../../middleware/auth.middleware.js';
@@ -9,7 +9,7 @@ export const postRoutes: Router = Router();
 // GET /api/posts — Feed
 postRoutes.get('/', optionalAuth(), validate(feedQuerySchema, 'query'), async (req, res, next) => {
   try {
-    const result = await postService.getFeed(req.validated as never, req.userId);
+    const result = await postService.getFeed(req.validated as FeedQuery, req.userId);
     res.json({ success: true, data: result });
   } catch (err) { next(err); }
 });
@@ -25,7 +25,7 @@ postRoutes.get('/:id', optionalAuth(), async (req, res, next) => {
 // POST /api/posts
 postRoutes.post('/', requireAuth(), requireVerifiedEmail(), validate(createPostSchema), async (req, res, next) => {
   try {
-    const post = await postService.create(req.userId!, req.validated as never);
+    const post = await postService.create(req.userId!, req.validated as CreatePostInput);
     res.status(201).json({ success: true, data: post });
   } catch (err) { next(err); }
 });
@@ -33,7 +33,7 @@ postRoutes.post('/', requireAuth(), requireVerifiedEmail(), validate(createPostS
 // POST /api/posts/:id/vote
 postRoutes.post('/:id/vote', requireAuth(), requireVerifiedEmail(), validate(voteSchema), async (req, res, next) => {
   try {
-    const result = await postService.vote(String(req.params.id), req.userId!, req.validated as never);
+    const result = await postService.vote(String(req.params.id), req.userId!, req.validated as VoteInput);
     res.json({ success: true, data: result });
   } catch (err) { next(err); }
 });

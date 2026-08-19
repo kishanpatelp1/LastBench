@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createCommentSchema, commentQuerySchema, voteSchema } from '@lastbench/shared';
+import { createCommentSchema, commentQuerySchema, voteSchema, type CreateCommentInput } from '@lastbench/shared';
 import { commentService } from './comments.service.js';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth, requireVerifiedEmail, optionalAuth } from '../../middleware/auth.middleware.js';
@@ -20,7 +20,7 @@ commentRoutes.get('/', optionalAuth(), validate(commentQuerySchema, 'query'), as
 
 commentRoutes.post('/', requireAuth(), requireVerifiedEmail(), validate(createCommentSchema), async (req, res, next) => {
   try {
-    const comment = await commentService.create(req.userId!, req.validated as never);
+    const comment = await commentService.create(req.userId!, req.validated as CreateCommentInput);
     res.status(201).json({ success: true, data: comment });
   } catch (err) { next(err); }
 });

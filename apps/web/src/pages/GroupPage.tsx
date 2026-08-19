@@ -61,7 +61,7 @@ export function GroupPage() {
   });
 
   const posts = postsData?.pages.flatMap((p) => p.items) ?? [];
-  const members = membersData?.pages.flatMap((p) => (p.items || []) as unknown as CommunityMember[]) ?? [];
+  const members = membersData?.pages.flatMap((p) => p.items || []) ?? [];
   const isMember = community?.isMember ?? false;
   const isSystemAdmin = user?.role === 'ADMIN';
   const isAdmin = community?.userRole === 'OWNER' || community?.userRole === 'MOD' || isSystemAdmin;
@@ -427,7 +427,7 @@ export function GroupPage() {
       {/* Settings Modal */}
       {showSettings && (
         <GroupSettingsModal
-          community={community as unknown as Community}
+          community={community}
           onClose={() => setShowSettings(false)}
         />
       )}

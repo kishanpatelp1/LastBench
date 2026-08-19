@@ -1,22 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../lib/api-client';
-
-interface User {
-  id: string;
-  email: string;
-  username: string;
-  displayName: string | null;
-  role: string;
-  avatarUrl: string | null;
-  college: string | null;
-  branch: string | null;
-  year: number | null;
-  bio: string | null;
-  emailVerified: boolean;
-  onboardingCompleted: boolean;
-  createdAt: string;
-  _count?: { posts: number; comments: number };
-}
+import type { User } from '../types';
 
 interface AuthState {
   user: User | null;
@@ -39,13 +23,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     // Cookie is set by the server; we only need the user object
     const result = await api.login({ email, password });
-    set({ user: result.user as unknown as User, isAuthenticated: true });
+    set({ user: result.user, isAuthenticated: true });
   },
 
   register: async (data) => {
     const result = await api.register(data);
     if (!result.requireVerification) {
-      set({ user: result.user as unknown as User, isAuthenticated: true });
+      set({ user: result.user, isAuthenticated: true });
     }
     return result;
   },
@@ -62,10 +46,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       // No token to read — the httpOnly cookie is sent automatically by the browser
       const user = await api.getMe();
-      set({ user: user as unknown as User, isAuthenticated: true, isLoading: false });
+      set({ user, isAuthenticated: true, isLoading: false });
     } catch {
       // Cookie missing, expired, or invalid — treat as unauthenticated
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 }));
+

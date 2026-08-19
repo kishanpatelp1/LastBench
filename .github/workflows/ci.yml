@@ -21,9 +21,6 @@ jobs:
       - run: pnpm turbo type-check
       - run: pnpm turbo lint
 
-  # L-1: Test stage — currently runs type-check as the test suite.
-  # Replace the `run` step with your actual test command once tests are added.
-  # e.g.: run: pnpm turbo test
   test:
     name: Tests
     runs-on: ubuntu-latest
@@ -69,8 +66,7 @@ jobs:
       - name: Run database migrations
         run: pnpm --filter @lastbench/api exec prisma migrate deploy
       - name: Run tests
-        # Replace with: pnpm turbo test
-        run: pnpm turbo type-check
+        run: pnpm turbo test
 
   build:
     name: Build

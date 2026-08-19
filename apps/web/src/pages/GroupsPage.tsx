@@ -182,8 +182,9 @@ export function GroupsPage() {
     return allCommunities.slice(start, start + ITEMS_PER_PAGE);
   }, [allCommunities, page]);
 
-  const isMember = (communityId: string) => {
-    return (user as any)?.joinedCommunities?.includes(communityId) ?? false;
+  const isMember = (_communityId: string) => {
+    // Membership status is fetched per-community from the API (community.isMember)
+    return false;
   };
 
   const handleCreateGroupClick = () => {

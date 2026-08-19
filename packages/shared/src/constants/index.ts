@@ -9,6 +9,7 @@ export const POST_TYPES = {
   IMAGE: 'IMAGE',
   POLL: 'POLL',
   LINK: 'LINK',
+  VIDEO: 'VIDEO',
 } as const;
 
 export const COMMUNITY_CATEGORIES = [

@@ -5,6 +5,9 @@ import {
   updateProfileSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  type RegisterInput,
+  type LoginInput,
+  type UpdateProfileInput,
 } from '@lastbench/shared';
 import { authService } from './auth.service.js';
 import { validate } from '../../middleware/validate.js';
@@ -13,6 +16,7 @@ import { authRateLimiter } from '../../middleware/rate-limit.js';
 import { env } from '../../config/env.js';
 import { passport } from './google.strategy.js';
 import { z } from 'zod';
+import { generateSecureToken } from '../../lib/tokens.js';
 
 export const authRoutes: Router = Router();
 
@@ -45,7 +49,7 @@ function clearSessionCookie(res: Response) {
 // POST /api/auth/register
 authRoutes.post('/register', authRateLimiter(), validate(registerSchema), async (req, res, next) => {
   try {
-    const result = await authService.register(req.validated as never);
+    const result = await authService.register(req.validated as RegisterInput);
     res.status(201).json({ success: true, data: { user: result.user, requireVerification: result.requireVerification, message: result.message } });
   } catch (err) { next(err); }
 });
@@ -53,7 +57,7 @@ authRoutes.post('/register', authRateLimiter(), validate(registerSchema), async 
 // POST /api/auth/login
 authRoutes.post('/login', authRateLimiter(), validate(loginSchema), async (req, res, next) => {
   try {
-    const result = await authService.login(req.validated as never);
+    const result = await authService.login(req.validated as LoginInput);
     setSessionCookie(res, result.token);
     res.json({ success: true, data: { user: result.user } });
   } catch (err) { next(err); }
@@ -87,7 +91,7 @@ authRoutes.get('/user/:username', async (req, res, next) => {
 // PATCH /api/auth/profile
 authRoutes.patch('/profile', requireAuth(), requireVerifiedEmail(), validate(updateProfileSchema), async (req, res, next) => {
   try {
-    const user = await authService.updateProfile(req.userId!, req.validated as never);
+    const user = await authService.updateProfile(req.userId!, req.validated as UpdateProfileInput);
     res.json({ success: true, data: user });
   } catch (err) { next(err); }
 });
@@ -144,40 +148,52 @@ authRoutes.post(
 
 // ─── Google OAuth ──────────────────────────────────────────────────────────
 // session: false — we manage sessions ourselves via httpOnly cookies + Session table.
-// This intentionally skips Passport's built-in CSRF state check (no express-session).
+// CSRF protection: we generate a cryptographically secure random state token stored
+// in a short-lived, httpOnly cookie (oauth_state) and verify it upon callback.
 
 const googleConfigured = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+const OAUTH_STATE_COOKIE = 'oauth_state';
 
-// GET /api/auth/google — initiate OAuth consent screen
+// GET /api/auth/google — initiate OAuth consent screen with CSRF state token
 authRoutes.get('/google', (req, res, next) => {
   // GOOGLE_CLIENT_ID/SECRET are optional env vars — if a deployment hasn't
   // configured Google sign-in, fail soft with a clear error instead of
   // handing the browser off to Google with an empty/invalid clientID
-  // (which surfaces as Google's own generic "Error 401: invalid_client"
-  // page — a dead end with no way back to the app).
   if (!googleConfigured) {
     res.redirect(`${env.FRONTEND_URL}/login?error=oauth_not_configured`);
     return;
   }
-  passport.authenticate('google', { session: false, scope: ['profile', 'email'] })(req, res, next);
+
+  // Generate high-entropy state token and bind it in an httpOnly cookie (10 min TTL)
+  const stateToken = generateSecureToken();
+  res.cookie(OAUTH_STATE_COOKIE, stateToken, getCookieOptions(10 * 60 * 1000));
+
+  passport.authenticate('google', {
+    session: false,
+    scope: ['profile', 'email'],
+    state: stateToken,
+  })(req, res, next);
 });
 
 // GET /api/auth/google/callback — Google redirects here after user consents
-//
-// Uses passport's custom-callback form (the 3rd argument) instead of the
-// declarative { failureRedirect } option. failureRedirect only covers
-// `done(null, false)` (bad credentials); it does NOT catch `done(err)`
-// thrown from inside the strategy's verify function (e.g. a DB race when
-// two tabs finish OAuth at once, or Prisma being briefly unreachable).
-// Uncaught, that error falls through to the global JSON error handler and
-// the user's browser renders a bare `{"success":false,...}` page instead
-// of landing back on /login with a readable message. The callback form
-// lets us catch *both* cases here and always end in a redirect.
 authRoutes.get('/google/callback', (req, res, next) => {
   if (!googleConfigured) {
     res.redirect(`${env.FRONTEND_URL}/login?error=oauth_not_configured`);
     return;
   }
+
+  const expectedState = req.cookies?.[OAUTH_STATE_COOKIE] as string | undefined;
+  const returnedState = req.query.state as string | undefined;
+
+  // Consume and clear the state cookie immediately to prevent replay attacks
+  res.clearCookie(OAUTH_STATE_COOKIE, getCookieOptions());
+
+  // Strict CSRF state verification
+  if (!expectedState || !returnedState || expectedState !== returnedState) {
+    res.redirect(`${env.FRONTEND_URL}/login?error=oauth_csrf_failed`);
+    return;
+  }
+
   passport.authenticate(
     'google',
     { session: false },

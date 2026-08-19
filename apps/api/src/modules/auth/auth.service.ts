@@ -1,17 +1,14 @@
-import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { emailQueue } from '../../lib/queue.js';
 import { logger } from '../../lib/logger.js';
-import { nanoid } from 'nanoid';
 import bcrypt from 'bcryptjs';
 import type { RegisterInput, LoginInput, UpdateProfileInput } from '@lastbench/shared';
+import { hashToken, generateSessionToken, generateSecureToken } from '../../lib/tokens.js';
 
-/** Hash a raw token with SHA-256 before DB storage (C-1) */
-export function hashToken(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
-}
+// Re-export hashToken so existing imports from this module still work
+export { hashToken };
 
 /** True if `err` is a Prisma unique-constraint violation on the given field. */
 function isUniqueConstraintError(err: unknown, field: string): boolean {
@@ -20,14 +17,6 @@ function isUniqueConstraintError(err: unknown, field: string): boolean {
     err.code === 'P2002' &&
     ((err.meta?.target as string[] | undefined)?.includes(field) ?? false)
   );
-}
-
-function generateSessionToken(): string {
-  return nanoid(64);
-}
-
-function generateSecureToken(): string {
-  return nanoid(48);
 }
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -64,7 +53,7 @@ export const authService = {
           // needs prisma generate to be re-run against the migrated DB
           emailVerificationToken: verificationTokenHash,
           emailVerificationExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        } as never,
+        },
         select: {
           id: true, email: true, username: true, displayName: true, role: true,
           avatarUrl: true, branch: true, year: true, bio: true,
@@ -198,7 +187,7 @@ export const authService = {
 
     return prisma.user.update({
       where: { id: userId },
-      data: safeData as never,
+      data: safeData as Prisma.UserUpdateInput,
       select: {
         id: true, email: true, username: true, displayName: true, role: true,
         avatarUrl: true, branch: true, year: true, bio: true,
@@ -214,7 +203,7 @@ export const authService = {
       where: {
         emailVerificationToken: tokenHash,
         emailVerificationExpiry: { gt: new Date() },
-      } as never,
+      },
     });
 
     if (!user) throw new AppError(400, 'Invalid or expired verification token');
@@ -225,7 +214,7 @@ export const authService = {
         emailVerified: true,
         emailVerificationToken: null,
         emailVerificationExpiry: null,
-      } as never,
+      },
     });
 
     return { message: 'Email verified successfully' };
@@ -245,7 +234,7 @@ export const authService = {
       data: {
         passwordResetToken: tokenHash,
         passwordResetExpiry: new Date(Date.now() + 60 * 60 * 1000),
-      } as never,
+      },
     });
 
     try {
@@ -286,7 +275,7 @@ export const authService = {
       data: {
         emailVerificationToken: verificationTokenHash,
         emailVerificationExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      } as never,
+      },
     });
 
     try {
@@ -311,7 +300,7 @@ export const authService = {
       where: {
         passwordResetToken: tokenHash,
         passwordResetExpiry: { gt: new Date() },
-      } as never,
+      },
     });
 
     if (!user) throw new AppError(400, 'Invalid or expired reset token');
@@ -324,7 +313,7 @@ export const authService = {
         passwordHash,
         passwordResetToken: null,
         passwordResetExpiry: null,
-      } as never,
+      },
     });
 
     // Invalidate all existing sessions for security
@@ -386,7 +375,7 @@ export const authService = {
       // Google already verified this email — mark it verified on our side too
       await prisma.user.update({
         where: { id: existingUser.id },
-        data: { emailVerified: true } as never,
+        data: { emailVerified: true },
       });
       return { ...existingUser, emailVerified: true };
     }
@@ -419,7 +408,7 @@ export const authService = {
           oauthAccounts: {
             create: { provider: 'google', providerId: googleId },
           },
-        } as never,
+        },
         select: {
           id: true, email: true, username: true, displayName: true, role: true,
           avatarUrl: true, branch: true, year: true, bio: true,

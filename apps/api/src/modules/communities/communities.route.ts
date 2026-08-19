@@ -5,6 +5,8 @@ import {
   updateCommunitySchema,
   communitiesQuerySchema,
   type CommunitiesQuery,
+  type CreateCommunityInput,
+  type UpdateCommunityInput,
 } from '@lastbench/shared';
 import { communityService } from './communities.service.js';
 import { validate } from '../../middleware/validate.js';
@@ -44,7 +46,7 @@ communityRoutes.get('/:slug/members', async (req, res, next) => {
 // Requires auth + verified email. Creator is auto-added as OWNER.
 communityRoutes.post('/', requireAuth(), requireVerifiedEmail(), validate(createCommunitySchema), async (req, res, next) => {
   try {
-    const community = await communityService.create(req.validated as never, req.userId!);
+    const community = await communityService.create(req.validated as CreateCommunityInput, req.userId!);
     res.status(201).json({ success: true, data: community });
   } catch (err) { next(err); }
 });
@@ -54,7 +56,7 @@ communityRoutes.post('/', requireAuth(), requireVerifiedEmail(), validate(create
 communityRoutes.patch('/:slug', requireAuth(), requireVerifiedEmail(), validate(updateCommunitySchema), async (req, res, next) => {
   try {
     const slug = req.params.slug as string;
-    const updated = await communityService.update(slug, req.userId!, req.validated as never);
+    const updated = await communityService.update(slug, req.userId!, req.validated as UpdateCommunityInput);
     res.json({ success: true, data: updated });
   } catch (err) { next(err); }
 });

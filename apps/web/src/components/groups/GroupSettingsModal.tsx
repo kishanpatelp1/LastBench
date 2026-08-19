@@ -58,7 +58,7 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
     setIsMembersLoading(true);
     api.getCommunityMembers(community.slug, { limit: '20' })
       .then((res) => {
-        setMembers((res.items || []) as unknown as CommunityMember[]);
+        setMembers((res.items || []));
         setNextCursor(res.nextCursor);
         setHasMoreMembers(!!res.hasMore);
       })
@@ -72,7 +72,7 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
     setIsFetchingMoreMembers(true);
     try {
       const res = await api.getCommunityMembers(community.slug, { cursor: nextCursor, limit: '20' });
-      setMembers((prev) => [...prev, ...((res.items || []) as unknown as CommunityMember[])]);
+      setMembers((prev) => [...prev, ...(res.items || [])]);
       setNextCursor(res.nextCursor);
       setHasMoreMembers(!!res.hasMore);
     } catch {

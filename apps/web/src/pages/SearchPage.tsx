@@ -32,7 +32,7 @@ export function SearchPage() {
 
   const { data, isLoading } = useQuery<{ posts: Post[]; communities: Community[] }>({
     queryKey: ['search', searched],
-    queryFn: () => api.search({ q: searched, type: 'all', limit: '20' }) as unknown as Promise<{ posts: Post[]; communities: Community[] }>,
+    queryFn: () => api.search({ q: searched, type: 'all', limit: '20' }),
     enabled: searched.length > 0,
   });
 

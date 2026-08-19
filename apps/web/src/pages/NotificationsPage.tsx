@@ -1,11 +1,12 @@
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api-client';
 import { motion } from 'framer-motion';
 import { Bell, MessageSquare, ArrowUp, UserPlus, CheckCheck, Loader2 } from 'lucide-react';
 import { timeAgo } from '../lib/utils';
 import { toast } from 'sonner';
-import { Notification } from '../types';
+import type { PaginatedResponse } from '@lastbench/shared';
+import type { Notification } from '../types';
 
 const typeIcons: Record<string, typeof Bell> = {
   COMMENT: MessageSquare,
@@ -44,7 +45,7 @@ export function NotificationsPage() {
     initialPageParam: undefined as string | undefined,
   });
 
-  const notifications = (data?.pages.flatMap((p) => p.items) ?? []) as unknown as Notification[];
+  const notifications = data?.pages.flatMap((p) => p.items) ?? [];
 
   const handleMarkAllRead = async () => {
     try {
@@ -59,13 +60,13 @@ export function NotificationsPage() {
 
   const handleNotificationClick = async (notif: Notification) => {
     if (!notif.isRead) {
-      queryClient.setQueryData(['notifications'], (oldData: any) => {
+      queryClient.setQueryData<InfiniteData<PaginatedResponse<Notification>>>(['notifications'], (oldData) => {
         if (!oldData || !oldData.pages) return oldData;
         return {
           ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
-            items: page.items.map((item: Notification) =>
+            items: page.items.map((item) =>
               item.id === notif.id ? { ...item, isRead: true } : item
             ),
           })),

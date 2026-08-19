@@ -3,6 +3,43 @@ import type { Post, Community, CommunityMember, User, Comment, Notification } fr
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+/** Search results shape returned by the /search endpoint. */
+export interface SearchResults {
+  posts: Post[];
+  communities: Community[];
+  users: User[];
+}
+
+interface ReportTarget {
+  id: string;
+  content: string;
+  isDeleted: boolean;
+  author: {
+    id: string;
+    username: string;
+    isBanned: boolean;
+  };
+}
+
+/** Report shape returned by admin endpoints. */
+export interface Report {
+  id: string;
+  reporterId: string;
+  postId?: string | null;
+  commentId?: string | null;
+  userId?: string | null;
+  reason: string;
+  details?: string | null;
+  status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+  aiScore?: number | null;
+  createdAt: string;
+  resolvedAt?: string | null;
+  reporter?: { id: string; username: string; displayName?: string | null; avatarUrl?: string | null };
+  post?: ReportTarget | null;
+  comment?: ReportTarget | null;
+  reportedUser?: { id: string; username: string } | null;
+}
+
 class ApiClient {
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = {
@@ -37,43 +74,43 @@ class ApiClient {
 
   // Auth
   async register(body: Record<string, unknown>) {
-    return this.request<{ user: Record<string, unknown>; requireVerification?: boolean; message?: string }>('/auth/register', {
+    return this.request<{ user: User; requireVerification?: boolean; message?: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
   async login(body: Record<string, unknown>) {
-    return this.request<{ user: Record<string, unknown> }>('/auth/login', {
+    return this.request<{ user: User }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
   async forgotPassword(email: string) {
-    return this.request('/auth/forgot-password', {
+    return this.request<{ message: string }>('/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
   }
 
   async resetPassword(token: string, password: string) {
-    return this.request('/auth/reset-password', {
+    return this.request<{ message: string }>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, password }),
     });
   }
 
   async logout() {
-    return this.request('/auth/logout', { method: 'POST' });
+    return this.request<{ message: string }>('/auth/logout', { method: 'POST' });
   }
 
   async getMe() {
-    return this.request<Record<string, unknown>>('/auth/me');
+    return this.request<User>('/auth/me');
   }
 
   async verifyEmail(token: string) {
-    return this.request(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+    return this.request<{ message: string }>(`/auth/verify-email?token=${encodeURIComponent(token)}`);
   }
 
   async resendVerification(email: string) {
@@ -84,7 +121,7 @@ class ApiClient {
   }
 
   async updateProfile(body: Record<string, unknown>) {
-    return this.request('/auth/profile', {
+    return this.request<User>('/auth/profile', {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
@@ -115,18 +152,18 @@ class ApiClient {
   }
 
   async votePoll(postId: string, optionId: string) {
-    return this.request(`/posts/${postId}/poll/vote`, {
+    return this.request<{ success: boolean }>(`/posts/${postId}/poll/vote`, {
       method: 'POST',
       body: JSON.stringify({ optionId }),
     });
   }
 
   async deletePost(id: string) {
-    return this.request(`/posts/${id}`, { method: 'DELETE' });
+    return this.request<{ success: boolean }>(`/posts/${id}`, { method: 'DELETE' });
   }
 
   async reportPost(postId: string, reason: string) {
-    return this.request('/admin/reports', {
+    return this.request<Report>('/admin/reports', {
       method: 'POST',
       body: JSON.stringify({ postId, reason }),
     });
@@ -151,14 +188,14 @@ class ApiClient {
   }
 
   async voteComment(id: string, type: 'UP' | 'DOWN') {
-    return this.request(`/comments/${id}/vote`, {
+    return this.request<{ commentId: string; score: number }>(`/comments/${id}/vote`, {
       method: 'POST',
       body: JSON.stringify({ type }),
     });
   }
 
   async deleteComment(id: string) {
-    return this.request(`/comments/${id}`, { method: 'DELETE' });
+    return this.request<{ success: boolean }>(`/comments/${id}`, { method: 'DELETE' });
   }
 
   // Communities
@@ -199,26 +236,26 @@ class ApiClient {
   }
 
   async joinCommunity(id: string) {
-    return this.request(`/communities/${id}/join`, { method: 'POST' });
+    return this.request<{ success: boolean }>(`/communities/${id}/join`, { method: 'POST' });
   }
 
   async leaveCommunity(id: string) {
-    return this.request(`/communities/${id}/leave`, { method: 'POST' });
+    return this.request<{ success: boolean }>(`/communities/${id}/leave`, { method: 'POST' });
   }
 
   async updateMemberRole(slug: string, userId: string, role: 'MOD' | 'MEMBER') {
-    return this.request(`/communities/${slug}/members/${userId}/role`, {
+    return this.request<{ success: boolean }>(`/communities/${slug}/members/${userId}/role`, {
       method: 'PATCH',
       body: JSON.stringify({ role }),
     });
   }
 
   async removeCommunityMember(slug: string, userId: string) {
-    return this.request(`/communities/${slug}/members/${userId}`, { method: 'DELETE' });
+    return this.request<{ success: boolean }>(`/communities/${slug}/members/${userId}`, { method: 'DELETE' });
   }
 
   async transferOwnership(slug: string, newOwnerId: string) {
-    return this.request(`/communities/${slug}/transfer-ownership`, {
+    return this.request<{ success: boolean }>(`/communities/${slug}/transfer-ownership`, {
       method: 'POST',
       body: JSON.stringify({ newOwnerId }),
     });
@@ -239,22 +276,22 @@ class ApiClient {
   }
 
   async markNotificationRead(id: string) {
-    return this.request(`/notifications/${id}/read`, { method: 'POST' });
+    return this.request<{ success: boolean }>(`/notifications/${id}/read`, { method: 'POST' });
   }
 
   async markAllRead() {
-    return this.request('/notifications/read-all', { method: 'POST' });
+    return this.request<{ success: boolean }>('/notifications/read-all', { method: 'POST' });
   }
 
   // Search
   async search(params: Record<string, string>) {
     const search = new URLSearchParams(params).toString();
-    return this.request<Record<string, unknown>>(`/search?${search}`);
+    return this.request<SearchResults>(`/search?${search}`);
   }
 
   // Reports
   async createReport(body: Record<string, unknown>) {
-    return this.request('/admin/reports', {
+    return this.request<Report>('/admin/reports', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -277,18 +314,18 @@ class ApiClient {
 
   async getAdminReports(params: Record<string, string> = {}) {
     const search = new URLSearchParams(params).toString();
-    return this.request<PaginatedResponse<any>>(`/admin/reports?${search}`);
+    return this.request<PaginatedResponse<Report>>(`/admin/reports?${search}`);
   }
 
   async updateReportStatus(id: string, status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED') {
-    return this.request(`/admin/reports/${id}`, {
+    return this.request<Report>(`/admin/reports/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
   }
 
   async banUser(id: string, ban: boolean = true) {
-    return this.request(`/admin/users/${id}/ban`, {
+    return this.request<{ success: boolean }>(`/admin/users/${id}/ban`, {
       method: 'POST',
       body: JSON.stringify({ ban }),
     });

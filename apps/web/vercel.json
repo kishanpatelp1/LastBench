@@ -5,6 +5,10 @@
       "destination": "https://lastbench-api-8zyb.onrender.com/api/:path*"
     },
     {
+      "source": "/socket.io/:path*",
+      "destination": "https://lastbench-api-8zyb.onrender.com/socket.io/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -2,9 +2,10 @@ export interface User {
   id: string;
   username: string;
   displayName?: string | null;
+  role?: string;
+  email?: string;
   branch?: string | null;
   year?: number | null;
-  email?: string;
   avatarUrl?: string | null;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;

@@ -1,174 +1,206 @@
-# 🟣 LastBench — Your Campus. Unfiltered.
+# LastBench
 
-A modern anonymous college social platform built with production-grade architecture.
-Inspired by Reddit, Discord, YikYak, and anonymous confession platforms.
+**A campus community platform for the conversations students usually have somewhere else.**
 
-## Tech Stack
+LastBench gives college communities a focused place to share updates, ask questions, run polls, discover groups, and participate anonymously when the topic calls for it. It is built as a production-minded TypeScript monorepo with a React client, an Express API, PostgreSQL, Redis, realtime notifications, background moderation, and CI.
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 19 + Vite + TypeScript |
-| **Styling** | Tailwind CSS v4 + shadcn/ui primitives |
-| **State** | TanStack Query (server) + Zustand (client) |
-| **Animations** | Framer Motion |
-| **Forms** | React Hook Form + Zod |
-| **Backend** | Express 5 + TypeScript |
-| **Database** | PostgreSQL 16 + Prisma ORM |
-| **Cache** | Redis 7 |
-| **Realtime** | Socket.IO |
-| **Queue** | BullMQ |
-| **Monorepo** | Turborepo + pnpm |
-| **DevOps** | Docker + GitHub Actions |
+## Why LastBench
 
-## Features
+Campus conversation tends to fragment across informal chats, anonymous forums, and broad social networks. LastBench brings that activity into college-scoped communities while preserving the low-friction, pseudonymous experience students expect.
 
-- ✅ **Zero-Friction Guest Mode** — read-first browsing of feed, posts, and communities
-- ✅ **Confetti Animations** — custom physics-based Framer Motion confetti effects on post creation
-- ✅ **Anonymous/Public Posting** — toggle visibility per post
-- ✅ **Multi-College Communities** — `/iitm/placements`, `/vit/memes`
-- ✅ **Infinite Scroll Feed** — hot, new, top sorting
-- ✅ **Upvote/Downvote System** — optimistic updates
-- ✅ **Nested Comment Threads** — threaded replies
-- ✅ **Polls** — multi-option with live results
-- ✅ **Tags** — organize posts by topic
-- ✅ **Dark Mode** — system-aware, toggle-able
-- ✅ **Search** — fuzzy search across posts & communities
-- ✅ **Notifications** — in-app realtime notifications
-- ✅ **AI Moderation** — toxicity filtering pipeline (BullMQ)
-- ✅ **Report System** — user reports + admin dashboard
-- ✅ **Rate Limiting** — Redis-backed per-endpoint limits
-- ✅ **Session Auth** — secure token-based sessions
-- ✅ **Image Uploads** — multer with S3 abstraction
-- ✅ **Mobile-First UI** — responsive with bottom nav
-- ✅ **Glassmorphism** — modern blur effects
-- ✅ **Micro-Animations** — Framer Motion throughout
+- **Campus-first spaces** for placement news, academics, memes, events, and everything in between.
+- **Choice of identity** with public or anonymous posts.
+- **Thoughtful participation** through votes, nested comments, polls, tags, reports, and notifications.
+- **Operator tooling** with report handling and an admin moderation queue.
+- **Built to grow** with database-backed data, Redis rate limiting, Socket.IO, and BullMQ workers.
 
-## Project Structure
+## Product Surface
 
-```
-lastbench/
-├── apps/
-│   ├── web/           # React + Vite frontend
-│   │   ├── src/
-│   │   │   ├── components/   # UI components
-│   │   │   ├── pages/        # Route pages
-│   │   │   ├── stores/       # Zustand stores
-│   │   │   ├── lib/          # API client, utils
-│   │   │   └── App.tsx       # Router setup
-│   │   └── index.html
-│   └── api/           # Express backend
-│       ├── src/
-│       │   ├── modules/      # Feature modules
-│       │   │   ├── auth/
-│       │   │   ├── posts/
-│       │   │   ├── comments/
-│       │   │   ├── communities/
-│       │   │   ├── notifications/
-│       │   │   ├── search/
-│       │   │   ├── admin/
-│       │   │   └── upload/
-│       │   ├── middleware/    # Auth, validation, rate-limit
-│       │   ├── socket/       # Socket.IO handlers
-│       │   ├── workers/      # BullMQ workers
-│       │   ├── lib/          # Prisma, Redis, Queue
-│       │   └── config/       # Env validation
-│       └── prisma/           # Schema + seed
-├── packages/
-│   ├── shared/        # Zod schemas, types, constants
-│   └── tsconfig/      # Shared TS configs
-├── docker/            # Docker Compose
-└── turbo.json         # Turborepo config
+| Area | What it supports |
+| --- | --- |
+| Feed | Cursor-paginated feed, hot/new/top ordering, optimistic voting, and infinite scrolling |
+| Communities | College-aware groups such as `g/placements` and `g/memes`, membership, discovery, and search |
+| Discussion | Rich posts, image uploads, tags, polls, nested replies, and post reporting |
+| Identity | Email/password sessions, optional Google OAuth, onboarding, profiles, and anonymous posting |
+| Realtime | In-app notifications delivered through Socket.IO |
+| Moderation | Redis-backed rate limits, report workflow, queue-backed post checks, and admin review tools |
+
+## Architecture
+
+```text
+                         React 19 + Vite
+                         Tailwind + Radix UI
+                                  |
+                    HTTP API + Socket.IO client
+                                  |
+                        Express 5 API service
+          auth | posts | comments | groups | search | admin
+                    |                 |                 \
+               PostgreSQL 16       Redis 7          BullMQ workers
+                 Prisma ORM      cache/rate limits    moderation jobs
 ```
 
-## Getting Started
+This is a pnpm/Turborepo workspace. Shared Zod schemas and TypeScript types keep client and server contracts aligned.
+
+```text
+apps/
+  web/                 React single-page application
+  api/                 Express API, Prisma schema, Socket.IO, workers
+packages/
+  shared/              Shared Zod schemas, types, and constants
+  tsconfig/            Shared TypeScript configuration
+.github/workflows/     CI for type checks, tests, and production builds
+```
+
+## Stack
+
+| Concern | Technology |
+| --- | --- |
+| Client | React 19, Vite, TypeScript, Tailwind CSS, Radix UI |
+| Data fetching and state | TanStack Query, Zustand, React Hook Form, Zod |
+| API | Express 5, TypeScript, Socket.IO |
+| Persistence | PostgreSQL 16, Prisma ORM |
+| Performance and jobs | Redis 7, BullMQ |
+| Quality | Vitest, TypeScript, GitHub Actions |
+| Local infrastructure | Docker Compose |
+
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 22+
-- pnpm 9+
-- Docker (for PostgreSQL + Redis)
+- Node.js 22 or newer
+- pnpm 9 (Corepack is recommended)
+- Docker Desktop for PostgreSQL and Redis
 
-### Setup
+### Run locally
 
 ```bash
-# 1. Clone and install
-git clone <repo-url> lastbench
+git clone <your-repository-url> lastbench
 cd lastbench
+
+corepack enable
 pnpm install
 
-# 2. Start databases
-docker compose -f docker/docker-compose.yml up -d
+# Start PostgreSQL on :5434 and Redis on :6380.
+docker compose up -d
 
-# 3. Setup environment
-cp .env.example .env
+# Create local API configuration.
+Copy-Item apps/api/.env.example apps/api/.env
 
-# 4. Initialize database
+# Generate the Prisma client, apply migrations, and load demo data.
 pnpm db:generate
 pnpm db:migrate --name init
 pnpm db:seed
 
-# 5. Start development
+# Start the web app and API together.
 pnpm dev
 ```
 
-Frontend: http://localhost:3000  
-Backend API: http://localhost:3001  
-Prisma Studio: `pnpm db:studio`
+Open [http://localhost:3000](http://localhost:3000). The API readiness endpoint is [http://localhost:3001/health/ready](http://localhost:3001/health/ready).
 
-### Google OAuth Setup
+For macOS/Linux, replace the PowerShell `Copy-Item` command with:
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services → Credentials → Create OAuth 2.0 Client ID** (Web application)
-2. Add these **Authorized redirect URIs** (both at once):
-   - `http://localhost:3000/api/auth/google/callback` (dev — routes through Vite proxy)
-   - `https://<your-vercel-domain>/api/auth/google/callback` (prod — routes through Vercel proxy)
-   > ⚠️ The callback URL **must** go through the frontend proxy, not directly to the API URL (e.g. onrender.com). This ensures the session cookie is set on the frontend domain.
-3. Copy **Client ID** and **Client Secret** into your `.env`:
-   ```
-   GOOGLE_CLIENT_ID="..."
-   GOOGLE_CLIENT_SECRET="..."
-   GOOGLE_CALLBACK_URL="http://localhost:3000/api/auth/google/callback"  # dev
-   FRONTEND_URL="http://localhost:3000"  # dev
-   ```
-4. For production, set these env vars in your Render dashboard:
-   ```
-   GOOGLE_CALLBACK_URL=https://<vercel-domain>/api/auth/google/callback
-   FRONTEND_URL=https://<vercel-domain>
-   ```
+```bash
+cp apps/api/.env.example apps/api/.env
+```
 
-### Demo Credentials
+### Demo accounts
+
+The seed command creates these accounts for local evaluation:
 
 | Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@lastbench.app | Admin123 |
-| Student | student@iitm.ac.in | Admin123 |
-| Student | student@vit.ac.in | Admin123 |
+| --- | --- | --- |
+| Admin | `admin@lastbench.app` | `Admin123` |
+| Student | `student@iitm.ac.in` | `Admin123` |
+| Student | `student@vit.ac.in` | `Admin123` |
 
-## API Endpoints
+These credentials are strictly for local development. Change credentials and secrets in every deployed environment.
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | /api/auth/google | ❌ | Initiate Google OAuth |
-| GET | /api/auth/google/callback | ❌ | Google OAuth callback |
-| POST | /api/auth/register | ❌ | Register |
-| POST | /api/auth/login | ❌ | Login |
-| POST | /api/auth/logout | ✅ | Logout |
-| GET | /api/auth/me | ✅ | Get current user |
-| PATCH | /api/auth/profile | ✅ | Update profile |
-| GET | /api/posts | ❌ | Feed (paginated) |
-| GET | /api/posts/:id | ❌ | Single post |
-| POST | /api/posts | ✅ | Create post |
-| POST | /api/posts/:id/vote | ✅ | Vote on post |
-| DELETE | /api/posts/:id | ✅ | Delete post |
-| GET | /api/comments | ❌ | Comments for post |
-| POST | /api/comments | ✅ | Create comment |
-| GET | /api/communities | ❌ | List communities |
-| GET | /api/communities/:slug | ❌ | Community detail |
-| POST | /api/communities/:id/join | ✅ | Join community |
-| GET | /api/notifications | ✅ | User notifications |
-| GET | /api/search | ❌ | Search |
-| POST | /api/admin/reports | ✅ | Submit report |
-| POST | /api/upload | ✅ | Upload image |
+## Everyday Commands
+
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Start all workspace applications in development mode |
+| `pnpm build` | Create production builds |
+| `pnpm lint` | Run TypeScript checks for the web workspace |
+| `pnpm test` | Run the API test suite through Turborepo |
+| `pnpm db:generate` | Generate the Prisma client |
+| `pnpm db:migrate --name <name>` | Create and apply a development migration |
+| `pnpm db:seed` | Load development demo data |
+| `pnpm db:studio` | Open Prisma Studio |
+| `docker compose down` | Stop local PostgreSQL and Redis without removing data |
+
+## Configuration
+
+Copy [`apps/api/.env.example`](apps/api/.env.example) to `apps/api/.env` before starting the API. The defaults are ready for the local Docker Compose services.
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection URL |
+| `REDIS_URL` | Yes | Redis connection URL for caching, queues, and rate limits |
+| `BETTER_AUTH_SECRET` | Yes | Long, random session signing secret |
+| `BETTER_AUTH_URL` | Yes | Public API URL used in authentication flows |
+| `CORS_ORIGIN` | Yes | Frontend origin allowed to call the API |
+| `FRONTEND_URL` | Yes | Public frontend URL used for redirects |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | No | Enable Google OAuth |
+| `SMTP_*` or `RESEND_*` | No | Enable production email delivery |
+| `MAX_FILE_SIZE` | No | Upload limit in bytes; defaults to 50 MB |
+
+Never commit a populated `.env` file. For production, use your platform's encrypted environment-variable store and set `NODE_ENV=production`.
+
+## Authentication and OAuth
+
+LastBench supports email/password sessions and optional Google OAuth. When enabling Google OAuth, configure the callback through the frontend origin so the browser receives a first-party session cookie:
+
+```text
+http://localhost:3000/api/auth/google/callback
+https://<your-frontend-domain>/api/auth/google/callback
+```
+
+Add the matching callback URL to Google Cloud Console and set `GOOGLE_CALLBACK_URL` and `FRONTEND_URL` for the target environment. See [`apps/api/.env.example`](apps/api/.env.example) for the complete configuration reference.
+
+## API Overview
+
+The API is namespaced under `/api` and returns JSON. Public read endpoints let visitors explore the platform before signing in; write operations and personal data require an authenticated session.
+
+| Domain | Example endpoints |
+| --- | --- |
+| Auth | `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/me` |
+| Posts | `GET /api/posts`, `POST /api/posts`, `POST /api/posts/:id/vote` |
+| Comments | `GET /api/comments`, `POST /api/comments` |
+| Communities | `GET /api/communities`, `POST /api/communities/:id/join` |
+| Discovery | `GET /api/search` |
+| Notifications | `GET /api/notifications` |
+| Moderation | `POST /api/admin/reports` |
+| Uploads | `POST /api/upload` |
+
+The readiness check at `GET /health/ready` verifies the API's database and Redis dependencies.
+
+## Quality Bar
+
+Every pull request and push to `main` runs GitHub Actions that:
+
+1. installs dependencies from the lockfile;
+2. runs TypeScript checks and linting;
+3. applies Prisma migrations to ephemeral PostgreSQL and Redis services;
+4. runs the test suite; and
+5. creates production builds.
+
+Before opening a pull request, run:
+
+```bash
+pnpm turbo type-check
+pnpm lint
+pnpm test
+pnpm build
+```
+
+## Deployment Notes
+
+The included [`Dockerfile`](Dockerfile) produces a production API image. The web app is a Vite build and can be deployed to a static hosting provider with SPA fallback configured. Provision managed PostgreSQL and Redis, run Prisma migrations during deployment, and set the production values described in the Configuration section.
+
+For user-generated uploads, configure the included Supabase Storage integration or another durable object store rather than relying on a container-local directory. Configure explicit frontend origins, secure secrets, and a strong `BETTER_AUTH_SECRET` before accepting traffic.
 
 ## License
 
-MIT
+Distributed under the [MIT License](LICENSE).

@@ -27,7 +27,7 @@ export function ProfilePage() {
     enabled: !isOwnProfile && !!targetUsername,
   });
 
-  const profileUser: User | null = isOwnProfile ? (currentUser as unknown as User) : (targetProfileData as unknown as User);
+  const profileUser: User | null = isOwnProfile ? (currentUser as User | null) : (targetProfileData ?? null);
 
   // Query user posts stream
   // When viewing own profile: use authorId to include anonymous posts
@@ -43,7 +43,7 @@ export function ProfilePage() {
     enabled: isOwnProfile ? !!currentUser?.id : !!targetUsername,
   });
 
-  const userPosts: Post[] = (userPostsData?.items || []) as unknown as Post[];
+  const userPosts: Post[] = userPostsData?.items || [];
 
   const handleAvatarUpload = async (files: FileList | null) => {
     if (!files?.[0] || !isOwnProfile) return;

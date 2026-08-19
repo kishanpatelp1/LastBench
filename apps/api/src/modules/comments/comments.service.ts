@@ -13,6 +13,10 @@ export const commentService = {
       select: { authorId: true, isDeleted: true },
     });
 
+    if (!post || post.isDeleted) {
+      throw new AppError(404, 'Post not found');
+    }
+
     let depth = 0;
     if (input.parentId) {
       const parent = await prisma.comment.findUnique({

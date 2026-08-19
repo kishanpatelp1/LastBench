@@ -25,7 +25,7 @@ export function MainLayout() {
     refetchInterval: 30000,
   });
 
-  const hasUnread = (unreadData?.count ?? 0) > 0 || (user as any)?.unreadCount > 0;
+  const hasUnread = (unreadData?.count ?? 0) > 0;
 
   const handleLogout = async () => {
     await logout();
@@ -53,7 +53,15 @@ export function MainLayout() {
   const closeMenu = () => setMobileMenuOpen(false);
   const isAdminOrMod = user?.role === 'ADMIN' || user?.role === 'MODERATOR';
 
-  const NavItem = ({ to, icon: Icon, label, badge = false, onClick }: any) => (
+  interface NavItemProps {
+    to: string;
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    badge?: boolean;
+    onClick?: () => void;
+  }
+
+  const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label, badge = false, onClick }) => (
     <NavLink
       to={to}
       onClick={onClick}

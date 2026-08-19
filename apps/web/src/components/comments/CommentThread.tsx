@@ -8,6 +8,7 @@ import { ArrowUp, ArrowDown, MessageSquare, Send, Trash2, Flag } from 'lucide-re
 import { cn, timeAgo, formatNumber } from '../../lib/utils';
 import { toast } from 'sonner';
 import { ReportModal } from '../ReportModal';
+import type { Comment } from '../../types';
 
 interface CommentThreadProps {
   postId: string;
@@ -24,13 +25,13 @@ export function CommentThread({ postId }: CommentThreadProps) {
 
   const { data, isLoading } = useQuery({
     queryKey: ['comments', postId],
-    queryFn: () => api.getComments({ postId, sort: 'best', limit: '50' }),
-    enabled: !!postId,
+    queryFn: () => api.getComments({ postId }),
   });
 
   const comments = data?.items ?? [];
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!isAuthenticated) {
       toast.error('Please sign in to comment');
       navigate('/login');
@@ -56,15 +57,15 @@ export function CommentThread({ postId }: CommentThreadProps) {
     }
   };
 
-  const CommentItem = ({ comment, depth = 0 }: { comment: any; depth?: number }) => {
-    const author = (comment.author as Record<string, unknown>) ?? {};
-    const replies = (comment.replies as Array<Record<string, unknown>>) ?? [];
+  const CommentItem = ({ comment, depth = 0 }: { comment: Comment; depth?: number }) => {
+    const author = comment.author;
+    const replies = comment.replies ?? [];
     const [reportModalOpen, setReportModalOpen] = useState(false);
 
     const handleCommentDelete = async () => {
       if (!confirm('Are you sure you want to delete this comment?')) return;
       try {
-        await api.deleteComment(comment.id as string);
+        await api.deleteComment(comment.id);
         toast.success('Comment deleted');
         queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       } catch (err) {
@@ -79,7 +80,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
         return;
       }
       try {
-        await api.voteComment(comment.id as string, type);
+        await api.voteComment(comment.id, type);
         queryClient.invalidateQueries({ queryKey: ['comments', postId] });
         toast.success('Vote recorded!');
       } catch (err) {
@@ -92,14 +93,14 @@ export function CommentThread({ postId }: CommentThreadProps) {
         <div className="py-3">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500/80 to-fuchsia-500/80 flex items-center justify-center text-white text-[10px] font-bold">
-              {(author.displayName as string)?.[0]?.toUpperCase() ?? (author.username as string)?.[0]?.toUpperCase() ?? '?'}
+              {author?.displayName?.[0]?.toUpperCase() ?? author?.username?.[0]?.toUpperCase() ?? '?'}
             </div>
-            <span className="text-sm font-medium text-foreground">{(author.displayName as string) ?? (author.username ? `u/${author.username}` : 'Anonymous')}</span>
+            <span className="text-sm font-medium text-foreground">{author?.displayName ?? (author?.username ? `u/${author.username}` : 'Anonymous')}</span>
             <span className="text-xs text-muted-foreground">•</span>
-            <span className="text-xs text-muted-foreground">{timeAgo(comment.createdAt as string)}</span>
+            <span className="text-xs text-muted-foreground">{timeAgo(comment.createdAt)}</span>
           </div>
           <p className="text-sm text-foreground/90 leading-relaxed ml-9">
-            {comment.content as string}
+            {comment.content}
           </p>
           <div className="flex items-center gap-3 ml-9 mt-2">
             <div className="flex items-center gap-0.5 text-muted-foreground">
@@ -109,7 +110,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
               >
                 <ArrowUp size={14} />
               </button>
-              <span className="text-xs font-semibold min-w-[1.5rem] text-center">{formatNumber(comment.score as number)}</span>
+              <span className="text-xs font-semibold min-w-[1.5rem] text-center">{formatNumber(comment.score)}</span>
               <button
                 onClick={() => handleCommentVote('DOWN')}
                 className="p-1 rounded hover:bg-secondary hover:text-red-400 transition-colors cursor-pointer"
@@ -124,14 +125,14 @@ export function CommentThread({ postId }: CommentThreadProps) {
                   navigate('/login');
                   return;
                 }
-                setReplyTo(comment.id as string);
+                setReplyTo(comment.id);
               }}
               className="text-xs text-muted-foreground hover:text-primary font-medium transition-colors flex items-center gap-1 cursor-pointer"
             >
               <MessageSquare size={12} />
               Reply
             </button>
-            {(user?.id === author.id || user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
+            {(user?.id === author?.id || user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
               <button
                 onClick={handleCommentDelete}
                 className="text-xs text-muted-foreground hover:text-red-400 font-medium transition-colors flex items-center gap-1 cursor-pointer"
@@ -140,7 +141,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
                 Delete
               </button>
             )}
-            {user?.id !== author.id && author.id !== 'anonymous' && (
+            {user?.id !== author?.id && author?.id !== 'anonymous' && (
               <button
                 onClick={() => {
                   if (!isAuthenticated) {
@@ -157,11 +158,11 @@ export function CommentThread({ postId }: CommentThreadProps) {
               </button>
             )}
           </div>
-          <ReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} targetId={comment.id as string} targetType="COMMENT" />
+          <ReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} targetId={comment.id} targetType="COMMENT" />
         </div>
 
         {replies.map((reply) => (
-          <CommentItem key={reply.id as string} comment={reply} depth={depth + 1} />
+          <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
         ))}
       </div>
     );

@@ -3,6 +3,7 @@ import { searchQuerySchema } from '@lastbench/shared';
 import { validate } from '../../middleware/validate.js';
 import { prisma } from '../../lib/prisma.js';
 import { getCache, setCache } from '../../lib/redis.js';
+import { formatPost } from '../posts/post.formatter.js';
 
 import { optionalAuth } from '../../middleware/auth.middleware.js';
 
@@ -54,46 +55,7 @@ searchRoutes.get('/', optionalAuth(), validate(searchQuerySchema, 'query'), asyn
         },
       });
 
-      results.posts = rawPosts.map((p) => {
-        return {
-          id: p.id,
-          title: p.title,
-          content: p.content,
-          type: p.type,
-          isAnonymous: p.isAnonymous,
-          mediaUrls: p.mediaUrls,
-          tags: p.tags,
-          score: p.score,
-          commentCount: p.commentCount,
-          isPinned: p.isPinned,
-          createdAt: p.createdAt,
-          updatedAt: p.updatedAt,
-          author: p.isAnonymous
-            ? { id: 'anonymous', username: 'Anonymous', displayName: 'Anonymous', avatarUrl: null }
-            : p.author,
-          community: p.community,
-          userVote: Array.isArray(p.votes) && p.votes.length > 0 ? p.votes[0]?.type ?? null : null,
-          poll: p.poll ? (() => {
-            const pollOptions = p.poll.options;
-            const total = pollOptions.reduce((sum, opt) => sum + (opt._count?.votes || 0), 0);
-            return {
-              id: p.poll.id,
-              expiresAt: p.poll.expiresAt,
-              totalVotes: total,
-              userVotedOptionId: pollOptions.find(o => Array.isArray(o.votes) && o.votes.length > 0)?.id || null,
-              options: pollOptions.map(o => {
-                const count = o._count?.votes || 0;
-                return {
-                  id: o.id,
-                  text: o.text,
-                  voteCount: count,
-                  percentage: total > 0 ? Math.round((count / total) * 100) : 0,
-                };
-              }),
-            };
-          })() : null,
-        };
-      });
+      results.posts = rawPosts.map((p) => formatPost(p as Parameters<typeof formatPost>[0], req.userId));
     }
 
     if (type === 'communities' || type === 'all') {

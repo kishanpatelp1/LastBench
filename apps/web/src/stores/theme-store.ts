@@ -13,7 +13,7 @@ if (typeof document !== 'undefined') {
   document.documentElement.classList.toggle('dark', initialDark);
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
+export const useThemeStore = create<ThemeState>((set, get) => ({
   isDark: initialDark,
   theme: initialDark ? 'dark' : 'light',
 
@@ -25,13 +25,8 @@ export const useThemeStore = create<ThemeState>((set) => ({
       return { isDark: next, theme: next ? 'dark' : 'light' };
     }),
 
-  toggleTheme: () =>
-    set((state) => {
-      const next = !state.isDark;
-      localStorage.setItem('lastbench-theme', next ? 'dark' : 'light');
-      document.documentElement.classList.toggle('dark', next);
-      return { isDark: next, theme: next ? 'dark' : 'light' };
-    }),
+  // Alias — consumers use both names; keep only one implementation
+  toggleTheme: () => get().toggle(),
 
   setDark: (dark) => {
     localStorage.setItem('lastbench-theme', dark ? 'dark' : 'light');

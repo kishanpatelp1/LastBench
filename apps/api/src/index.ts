@@ -3,7 +3,7 @@ import { Server as SocketServer } from 'socket.io';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { setupSocketHandlers } from './socket/index.js';
-import { startWorkers } from './workers/index.js';
+import { startWorkers, shutdownWorkers } from './workers/index.js';
 import { prisma } from './lib/prisma.js';
 import { redis } from './lib/redis.js';
 import { logger } from './lib/logger.js';
@@ -61,12 +61,15 @@ async function main() {
         await new Promise<void>((resolve) => io.close(() => resolve()));
         logger.info('Socket.IO closed');
 
+        // Drain & close background BullMQ workers and queues
+        await shutdownWorkers();
+
         // Disconnect Prisma
         await prisma.$disconnect();
         logger.info('Prisma disconnected');
 
         // Quit Redis
-        redis.quit();
+        await redis.quit();
         logger.info('Redis disconnected');
 
         logger.info('Graceful shutdown complete');

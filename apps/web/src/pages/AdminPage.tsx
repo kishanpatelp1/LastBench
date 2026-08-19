@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../lib/api-client';
+import { Link } from 'react-router-dom';
+import { api, type Report } from '../lib/api-client';
 import { useAuthStore } from '../stores/auth-store';
 import { Shield, Users, FileText, Flag, Layers, CheckCircle, XCircle, Trash2, Ban, ExternalLink, Loader2 } from 'lucide-react';
 import { formatNumber, timeAgo } from '../lib/utils';
@@ -16,7 +16,6 @@ const statusBadges: Record<string, { color: string; label: string }> = {
 
 export function AdminPage() {
   const { user } = useAuthStore();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedStatus, setSelectedStatus] = useState<'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'>('PENDING');
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
@@ -60,7 +59,7 @@ export function AdminPage() {
     }
   };
 
-  const handleDeleteContent = async (report: any) => {
+  const handleDeleteContent = async (report: Report) => {
     if (!confirm('Permanently delete this reported content?')) return;
     setActionInProgress(report.id);
     try {
@@ -177,7 +176,7 @@ export function AdminPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {reports.map((report: any) => {
+            {reports.map((report: Report) => {
               const badge = statusBadges[report.status] ?? { color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', label: 'Pending Review' };
               const target = report.post || report.comment;
               const targetAuthor = target?.author;

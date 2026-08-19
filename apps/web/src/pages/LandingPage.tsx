@@ -49,13 +49,13 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden relative transition-colors duration-200">
       {/* TAKE-U-FORWARD STYLE FIXED TRANSLUCENT FLOATING ISLAND NAVBAR */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-5xl">
-        <nav className="bg-card/85 dark:bg-[#0d0b14]/80 backdrop-blur-xl border border-border/80 dark:border-white/15 rounded-full shadow-xl shadow-primary/5 flex items-center justify-between h-14 px-5">
-          <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-extrabold text-xs tracking-tight shadow-md shadow-primary/20">
+      <div className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-5xl px-1">
+        <nav className="bg-white/85 dark:bg-[#0d0b14]/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/15 rounded-full shadow-lg shadow-black/5 dark:shadow-black/60 flex items-center justify-between h-13 sm:h-14 px-3.5 sm:px-5 transition-colors">
+          <Link to="/" className="flex items-center gap-2 cursor-pointer shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary text-white flex items-center justify-center font-extrabold text-xs tracking-tight shadow-md shadow-primary/20">
               LB
             </div>
-            <span className="font-extrabold text-foreground text-base tracking-tight">LastBench</span>
+            <span className="font-extrabold text-foreground text-sm sm:text-base tracking-tight">LastBench</span>
           </Link>
 
           {/* Center Links (Desktop) */}
@@ -66,23 +66,23 @@ export function LandingPage() {
           </div>
 
           {/* Right Action Controls */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-secondary text-foreground transition-colors cursor-pointer border border-border/50"
+              className="p-1.5 sm:p-2 rounded-full hover:bg-secondary text-foreground transition-colors cursor-pointer border border-border/50"
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <Link to="/login" className="px-3.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/login" className="hidden sm:inline-block px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
               Sign In
             </Link>
             <Link
-              to="/register"
-              className="px-4 py-2 text-xs font-bold bg-primary text-white rounded-full hover:bg-primary/90 transition-all shadow-md shadow-primary/30 flex items-center gap-1.5"
+              to="/feed"
+              className="px-3.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold bg-primary text-white rounded-full hover:bg-primary/90 transition-all shadow-md shadow-primary/30 flex items-center gap-1 shrink-0"
             >
-              <span>Get Started</span>
-              <ArrowRight size={13} />
+              <span>Explore</span>
+              <ArrowRight size={12} className="hidden sm:inline" />
             </Link>
           </div>
         </nav>

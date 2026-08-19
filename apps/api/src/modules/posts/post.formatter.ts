@@ -4,23 +4,57 @@
  * Takes the raw Prisma `include`-shaped object and produces the public
  * API shape (anonymizing the author, computing poll percentages, etc).
  */
-export function formatPost(post: Record<string, unknown>, _userId?: string) {
-  const votes = (post as Record<string, unknown[]>).votes;
+
+// Type representing a raw Prisma post with its included relations.
+// Uses an index signature to stay compatible with various
+// Prisma include shapes (feed, getById, create, search).
+interface RawPost {
+  id: string;
+  title: string | null;
+  content: string;
+  type: string;
+  linkUrl?: string | null;
+  isAnonymous: boolean;
+  mediaUrls: string[];
+  tags: string[];
+  score: number;
+  commentCount: number;
+  isPinned: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  author: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+  community: { id: string; name: string; slug: string; avatarUrl: string | null };
+  votes?: Array<{ type: string }>;
+  poll?: {
+    id: string;
+    expiresAt: Date | string | null;
+    options: Array<{
+      id: string;
+      text: string;
+      _count?: { votes: number };
+      votes?: Array<{ id?: string }>;
+    }>;
+  } | null;
+  [key: string]: unknown; // allow extra Prisma fields
+}
+
+export function formatPost(post: RawPost, _userId?: string) {
+  const votes = post.votes;
   const userVote = Array.isArray(votes) && votes.length > 0
-    ? (votes[0] as Record<string, string>).type
+    ? votes[0]?.type ?? null
     : null;
 
-  const author = post.author as Record<string, unknown>;
-  const formattedAuthor = (post as Record<string, boolean>).isAnonymous
+  const author = post.author;
+  const formattedAuthor = post.isAnonymous
     ? { id: 'anonymous', username: 'Anonymous', displayName: 'Anonymous', avatarUrl: null }
     : author;
 
-  const poll = post.poll as Record<string, unknown> | null;
+  const poll = post.poll;
   let formattedPoll = null;
   if (poll) {
-    const options = poll.options as Array<Record<string, unknown>>;
+    const options = poll.options;
     const totalVotes = options.reduce((sum, o) => {
-      const count = (o._count as Record<string, number>)?.votes ?? 0;
+      const count = o._count?.votes ?? 0;
       return sum + count;
     }, 0);
 
@@ -35,9 +69,9 @@ export function formatPost(post: Record<string, unknown>, _userId?: string) {
     // avoids the self-reference entirely.
     let userVotedOptionId: string | null = null;
     const formattedOptions = options.map((o) => {
-      const voteCount = (o._count as Record<string, number>)?.votes ?? 0;
+      const voteCount = o._count?.votes ?? 0;
       const hasUserVoted = Array.isArray(o.votes) && o.votes.length > 0;
-      if (hasUserVoted) userVotedOptionId = o.id as string;
+      if (hasUserVoted) userVotedOptionId = o.id;
       return {
         id: o.id,
         text: o.text,
@@ -60,7 +94,7 @@ export function formatPost(post: Record<string, unknown>, _userId?: string) {
     title: post.title,
     content: post.content,
     type: post.type,
-    linkUrl: (post as any).linkUrl ?? null,
+    linkUrl: post.linkUrl ?? null,
     isAnonymous: post.isAnonymous,
     mediaUrls: post.mediaUrls,
     tags: post.tags,

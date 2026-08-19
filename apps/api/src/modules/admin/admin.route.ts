@@ -1,17 +1,40 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createReportSchema } from '@lastbench/shared';
+import type { ReportStatus } from '@prisma/client';
+import { createReportSchema, type CreateReportInput } from '@lastbench/shared';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth, requireRole, requireVerifiedEmail } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../lib/prisma.js';
+import { AppError } from '../../middleware/error-handler.js';
+import { assertCanModerateBanAction } from './admin.policy.js';
 
 export const adminRoutes: Router = Router();
 
 // Submit report (any authenticated, verified user)
 adminRoutes.post('/reports', requireAuth(), requireVerifiedEmail(), validate(createReportSchema), async (req, res, next) => {
   try {
+    const input = req.validated as CreateReportInput;
+
+    if (input.postId) {
+      const post = await prisma.post.findUnique({ where: { id: input.postId } });
+      if (!post) throw new AppError(404, 'Reported post not found');
+    } else if (input.commentId) {
+      const comment = await prisma.comment.findUnique({ where: { id: input.commentId } });
+      if (!comment) throw new AppError(404, 'Reported comment not found');
+    } else if (input.userId) {
+      const user = await prisma.user.findUnique({ where: { id: input.userId } });
+      if (!user) throw new AppError(404, 'Reported user not found');
+    }
+
     const report = await prisma.report.create({
-      data: { reporterId: req.userId!, ...(req.validated as Record<string, unknown>) } as never,
+      data: {
+        reporterId: req.userId!,
+        postId: input.postId ?? null,
+        commentId: input.commentId ?? null,
+        userId: input.userId ?? null,
+        reason: input.reason,
+        details: input.details ?? null,
+      },
     });
     res.status(201).json({ success: true, data: report });
   } catch (err) { next(err); }
@@ -37,7 +60,7 @@ adminRoutes.get('/reports', requireAuth(), requireRole('ADMIN', 'MODERATOR'), va
     const { status, cursor, limit } = req.validated as { status: string; cursor?: string; limit: number };
 
     const reports = await prisma.report.findMany({
-      where: { status: status as never },
+      where: { status: status as ReportStatus },
       orderBy: { createdAt: 'desc' },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -68,7 +91,7 @@ adminRoutes.patch('/reports/:id', requireAuth(), requireRole('ADMIN', 'MODERATOR
     const { status } = req.validated as { status: string };
     const report = await prisma.report.update({
       where: { id: req.params.id as string },
-      data: { status: status as never, resolvedAt: new Date() },
+      data: { status: status as ReportStatus, resolvedAt: new Date() },
     });
     res.json({ success: true, data: report });
   } catch (err) { next(err); }
@@ -77,8 +100,26 @@ adminRoutes.patch('/reports/:id', requireAuth(), requireRole('ADMIN', 'MODERATOR
 // Admin/Mod: Ban or unban user
 adminRoutes.post('/users/:id/ban', requireAuth(), requireRole('ADMIN', 'MODERATOR'), async (req, res, next) => {
   try {
+    const targetUserId = req.params.id as string;
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, role: true, isBanned: true },
+    });
+
+    if (!targetUser) {
+      throw new AppError(404, 'Target user not found');
+    }
+
+    assertCanModerateBanAction({
+      requesterId: req.userId,
+      requesterRole: req.userRole,
+      targetUserId,
+      targetRole: targetUser.role,
+    });
+
     const isBanned = req.body?.ban !== false;
-    await prisma.user.update({ where: { id: req.params.id as string }, data: { isBanned } });
+    await prisma.user.update({ where: { id: targetUserId }, data: { isBanned } });
     res.json({ success: true, isBanned });
   } catch (err) { next(err); }
 });

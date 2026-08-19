@@ -32,7 +32,7 @@ export function requireAuth() {
 
       if (!session || session.expiresAt < new Date()) {
         if (session) {
-          await prisma.session.delete({ where: { id: session.id } });
+          await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
         }
         throw new AppError(401, 'Session expired');
       }
