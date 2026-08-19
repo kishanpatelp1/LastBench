@@ -76,6 +76,10 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: test
+    # Prisma loads its datasource while generating client types. Build does not
+    # connect to Postgres, but it still needs a syntactically valid URL.
+    env:
+      DATABASE_URL: ******localhost:5432/lastbench_ci
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
