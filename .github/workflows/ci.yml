@@ -10,6 +10,10 @@ jobs:
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ubuntu-latest
+    # Prisma loads its datasource while generating client types. This job does
+    # not connect to Postgres, but it still needs a syntactically valid URL.
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lastbench_ci
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
