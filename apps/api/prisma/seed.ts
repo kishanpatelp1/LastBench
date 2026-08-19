@@ -1,4 +1,9 @@
 import { prisma } from '../src/lib/prisma.js';
+import { assertDestructiveSeedIsAllowed } from '../src/lib/seed-safety.js';
+
+// This script resets the database to demo content. It must never run against
+// the production database that contains real people and posts.
+assertDestructiveSeedIsAllowed();
 
 async function seed() {
   console.log('🌱 Seeding campus database...');

@@ -87,7 +87,7 @@ docker compose up -d
 # Create local API configuration.
 Copy-Item apps/api/.env.example apps/api/.env
 
-# Generate the Prisma client, apply migrations, and load demo data.
+# Generate the Prisma client, apply migrations, and load local demo data.
 pnpm db:generate
 pnpm db:migrate --name init
 pnpm db:seed
@@ -114,7 +114,7 @@ The seed command creates these accounts for local evaluation:
 | Student | `student@iitm.ac.in` | `Admin123` |
 | Student | `student@vit.ac.in` | `Admin123` |
 
-These credentials are strictly for local development. Change credentials and secrets in every deployed environment.
+These credentials are strictly for local development. The demo seed deletes existing application data before rebuilding the local dataset and is programmatically blocked when `NODE_ENV=production`. Never use it against a live database.
 
 ## Everyday Commands
 
@@ -126,7 +126,7 @@ These credentials are strictly for local development. Change credentials and sec
 | `pnpm test` | Run the API test suite through Turborepo |
 | `pnpm db:generate` | Generate the Prisma client |
 | `pnpm db:migrate --name <name>` | Create and apply a development migration |
-| `pnpm db:seed` | Load development demo data |
+| `pnpm db:seed` | Reset a local development database with demo data; blocked in production |
 | `pnpm db:studio` | Open Prisma Studio |
 | `docker compose down` | Stop local PostgreSQL and Redis without removing data |
 
