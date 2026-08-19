@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Flame, Clock, TrendingUp, ChevronRight, Loader2 } from 'lucide-react';
+import { Flame, Clock, TrendingUp, ChevronRight, Loader2, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { api } from '../lib/api-client';
@@ -13,6 +13,7 @@ import { PostComposer } from '../components/feed/PostComposer';
 export function FeedPage() {
   const { user } = useAuthStore();
   const [sort, setSort] = useState<'hot' | 'new' | 'top'>('hot');
+  const [timeRange, setTimeRange] = useState<'all' | 'week' | 'month'>('all');
   const observerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -22,8 +23,8 @@ export function FeedPage() {
     hasNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ['feed', sort],
-    queryFn: ({ pageParam }) => api.getFeed({ sort, limit: '10', ...(pageParam ? { cursor: pageParam } : {}) }),
+    queryKey: ['feed', sort, timeRange],
+    queryFn: ({ pageParam }) => api.getFeed({ sort, timeRange, limit: '10', ...(pageParam ? { cursor: pageParam } : {}) }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
@@ -109,6 +110,30 @@ export function FeedPage() {
           >
             <TrendingUp size={16} /> Top
           </button>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <CalendarDays size={14} aria-hidden="true" />
+          <div className="flex gap-0 border border-border rounded-md overflow-hidden">
+            {([
+              ['all', 'All time'],
+              ['week', 'This week'],
+              ['month', 'This month'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTimeRange(value)}
+                className={`px-3 py-1.5 transition-colors cursor-pointer ${
+                  timeRange === value
+                    ? 'bg-secondary text-foreground font-semibold'
+                    : 'hover:bg-secondary/50 hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-2">

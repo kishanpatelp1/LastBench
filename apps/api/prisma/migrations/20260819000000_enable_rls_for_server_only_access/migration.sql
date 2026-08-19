@@ -1,0 +1,20 @@
+-- LastBench uses Express + Prisma as its only data access layer. The browser
+-- must not query Supabase's public Data API directly, so enable RLS without
+-- adding public policies. The PostgreSQL role in DATABASE_URL is the server
+-- connection and continues to access data through the API.
+
+ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Session" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "OAuthAccount" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Community" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "CommunityMember" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "CommunityRule" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Post" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Poll" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PollOption" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PollVote" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Comment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Vote" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Report" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Notification" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "_prisma_migrations" ENABLE ROW LEVEL SECURITY;

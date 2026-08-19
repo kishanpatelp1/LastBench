@@ -201,6 +201,8 @@ The included [`Dockerfile`](Dockerfile) produces a production API image. The web
 
 For user-generated uploads, configure the included Supabase Storage integration or another durable object store rather than relying on a container-local directory. Configure explicit frontend origins, secure secrets, and a strong `BETTER_AUTH_SECRET` before accepting traffic.
 
+For production data handling, including the server-only Supabase RLS policy and backup/restore commands, see [`docs/data-operations.md`](docs/data-operations.md). Do not seed or reset a production database.
+
 ## License
 
 Distributed under the [MIT License](LICENSE).

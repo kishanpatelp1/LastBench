@@ -61,7 +61,9 @@ export const postService = {
 
   async getFeed(query: FeedQuery, userId?: string) {
     const { cursor, limit, sort, timeRange, communityId, authorId, authorUsername } = query;
-    const effectiveTimeRange = timeRange || (authorId || authorUsername || communityId ? 'all' : 'week');
+    // The home feed is a record of the campus, not an expiring stream. Time
+    // filtering is opt-in so older real posts remain discoverable by default.
+    const effectiveTimeRange = timeRange || 'all';
 
     // M-8: Cache-aside — only cache anonymous, first-page, default-sort feeds without specific author
     const cacheKey = !userId && !cursor && !authorId && !authorUsername
