@@ -9,10 +9,21 @@ import { formatPost } from './post.formatter.js';
 
 export const postService = {
   async create(authorId: string, input: CreatePostInput) {
-    // Verify community exists and user is a member
-    const membership = await prisma.communityMember.findUnique({
-      where: { userId_communityId: { userId: authorId, communityId: input.communityId } },
+    // General is the campus-wide feed. Other communities require an explicit membership.
+    const community = await prisma.community.findUnique({
+      where: { id: input.communityId },
+      select: { slug: true },
     });
+
+    if (!community) {
+      throw new AppError(404, 'Community not found');
+    }
+
+    const membership = community.slug === 'general'
+      ? true
+      : await prisma.communityMember.findUnique({
+          where: { userId_communityId: { userId: authorId, communityId: input.communityId } },
+        });
 
     if (!membership) {
       throw new AppError(403, 'You must join the community before posting');

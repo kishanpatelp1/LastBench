@@ -205,6 +205,12 @@ export const communityService = {
     const community = await prisma.community.findUnique({ where: { slug } });
     if (!community) throw new AppError(404, 'Community not found');
 
+    // General is the campus-wide feed, not an opt-in group. Do not expose a
+    // member directory for it even though memberships are recorded at signup.
+    if (community.slug === 'general') {
+      return { items: [], hasMore: false, nextCursor: undefined };
+    }
+
     const members = await prisma.communityMember.findMany({
       where: { communityId: community.id },
       include: {

@@ -30,8 +30,8 @@ export const createCommunitySchema = z.object({
 export const updateCommunitySchema = z.object({
   name: z.string().min(3).max(50).optional(),
   description: z.string().max(500).optional(),
-  avatarUrl: z.string().url().optional(),
-  bannerUrl: z.string().url().optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  bannerUrl: z.string().url().nullable().optional(),
 });
 
 // ─── Search ──────────────────────────────────────────

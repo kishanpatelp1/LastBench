@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..600&display=swap');
 @import "tailwindcss";
 
+/* Tailwind's dark utilities must follow the in-app toggle, not OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ─── Tailwind v4 Theme Configuration ──────────────── */
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;

@@ -70,8 +70,12 @@ export const authService = {
       throw err;
     }
 
-    // Auto-join default communities
-    const defaults = await prisma.community.findMany({ where: { isDefault: true }, select: { id: true } });
+    // Every account belongs to the campus-wide General feed. Keep the explicit
+    // slug check so this remains true even if its system-default flag changes.
+    const defaults = await prisma.community.findMany({
+      where: { OR: [{ isDefault: true }, { slug: 'general' }] },
+      select: { id: true },
+    });
     if (defaults.length > 0) {
       await prisma.communityMember.createMany({
         data: defaults.map((c: { id: string }) => ({ userId: user.id, communityId: c.id })),
@@ -441,8 +445,12 @@ export const authService = {
       throw err;
     }
 
-    // Auto-join default communities
-    const defaults = await prisma.community.findMany({ where: { isDefault: true }, select: { id: true } });
+    // Every account belongs to the campus-wide General feed. Keep the explicit
+    // slug check so this remains true even if its system-default flag changes.
+    const defaults = await prisma.community.findMany({
+      where: { OR: [{ isDefault: true }, { slug: 'general' }] },
+      select: { id: true },
+    });
     if (defaults.length > 0) {
       await prisma.communityMember.createMany({
         data: defaults.map((c: { id: string }) => ({ userId: newUser.id, communityId: c.id })),

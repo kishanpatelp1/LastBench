@@ -56,7 +56,7 @@ export function FeedPage() {
 
   return (
     <div className="max-w-[1240px] mx-auto px-4 py-4 flex gap-6">
-      <div className="flex-1 min-w-0 space-y-3">
+      <div className="flex-1 min-w-0 max-w-3xl space-y-3">
         {user && !user.emailVerified && (
           <div className="bg-card border border-border rounded-md p-3 text-sm flex items-center justify-between">
             <span className="text-muted-foreground">Please verify your email address to interact with posts and groups.</span>
@@ -212,7 +212,9 @@ export function FeedPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold text-foreground truncate">g/{c.slug}</div>
-                    <div className="text-[10px] text-muted-foreground">{c.memberCount} members</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {c.slug === 'general' ? 'Campus-wide' : `${c.memberCount} members`}
+                    </div>
                   </div>
                   <ChevronRight size={12} className="text-muted-foreground" />
                 </Link>

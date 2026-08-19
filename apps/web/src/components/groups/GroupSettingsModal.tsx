@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { X, Upload, Shield, ShieldOff, UserMinus, Crown, Loader2, Camera, Save, Trash2 } from 'lucide-react';
+import { X, Upload, Shield, ShieldOff, UserMinus, Crown, Loader2, Camera, Save, Trash2, Maximize2 } from 'lucide-react';
 
 import { api } from '../../lib/api-client';
 import { Community, CommunityMember } from '../../types';
 import { useAuthStore } from '../../stores/auth-store';
+import { MediaLightbox } from '../feed/MediaLightbox';
 
 interface GroupSettingsModalProps {
   community: Community;
@@ -32,6 +33,7 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
   const [description, setDescription] = useState(community.description ?? '');
   const [avatarUrl, setAvatarUrl] = useState(community.avatarUrl ?? '');
   const [bannerUrl, setBannerUrl] = useState(community.bannerUrl ?? '');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Members pagination state
   const [members, setMembers] = useState<CommunityMember[]>([]);
@@ -109,8 +111,8 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
     try {
       await api.updateCommunity(community.slug, {
         description: description || undefined,
-        avatarUrl: avatarUrl || undefined,
-        bannerUrl: bannerUrl || undefined,
+        avatarUrl: avatarUrl || null,
+        bannerUrl: bannerUrl || null,
       });
       queryClient.invalidateQueries({ queryKey: ['community', community.slug] });
       toast.success('Group settings saved!');
@@ -205,7 +207,7 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
 
         {/* Tabs */}
         <div className="flex border-b border-border shrink-0">
-          {(['general', 'members'] as Tab[]).map((tab) => (
+          {((community.slug === 'general' ? ['general'] : ['general', 'members']) as Tab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -228,19 +230,43 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
               <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Banner Image</label>
                 <div
-                  className="h-24 rounded-lg overflow-hidden border border-border relative group cursor-pointer"
+                  className="h-24 rounded-lg overflow-hidden border border-border relative"
                   style={{
                     background: bannerUrl
                       ? `url(${bannerUrl}) center/cover no-repeat`
                       : 'linear-gradient(135deg, hsl(var(--primary)/0.2), hsl(var(--primary)/0.05))',
                   }}
-                  onClick={() => bannerInputRef.current?.click()}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-all">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-white text-xs font-semibold">
+                  <div className="absolute right-2 top-2 flex gap-1">
+                    {bannerUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewUrl(bannerUrl)}
+                        className="p-1.5 rounded-md bg-black/60 text-white hover:bg-black/80 transition-colors cursor-pointer"
+                        title="View banner full size"
+                      >
+                        <Maximize2 size={14} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => bannerInputRef.current?.click()}
+                      disabled={isUploadingBanner}
+                      className="p-1.5 rounded-md bg-black/60 text-white hover:bg-black/80 disabled:opacity-60 transition-colors cursor-pointer"
+                      title="Change banner"
+                    >
                       {isUploadingBanner ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
-                      {isUploadingBanner ? 'Uploading...' : 'Change Banner'}
-                    </div>
+                    </button>
+                    {bannerUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setBannerUrl('')}
+                        className="p-1.5 rounded-md bg-black/60 text-white hover:bg-destructive transition-colors cursor-pointer"
+                        title="Remove banner and restore default"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <input id="group-banner-file-input" name="bannerInput" aria-label="Upload group banner image" ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e.target.files, 'banner')} />
@@ -250,10 +276,7 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
               <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Group Avatar</label>
                 <div className="flex items-center gap-4">
-                  <div
-                    className="w-16 h-16 rounded-full overflow-hidden border-2 border-border relative group cursor-pointer shrink-0"
-                    onClick={() => avatarInputRef.current?.click()}
-                  >
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border relative group shrink-0">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="Group avatar" className="w-full h-full object-cover" />
                     ) : (
@@ -261,14 +284,40 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
                         {community.name[0]}
                       </div>
                     )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition-all">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        {isUploadingAvatar ? <Loader2 size={16} className="animate-spin text-white" /> : <Upload size={16} className="text-white" />}
-                      </div>
+                    <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/0 group-hover:bg-black/50 transition-all">
+                      {avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewUrl(avatarUrl)}
+                          className="p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-black/80 transition-all cursor-pointer"
+                          title="View avatar full size"
+                        >
+                          <Maximize2 size={13} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={isUploadingAvatar}
+                        className="p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-black/80 disabled:opacity-60 transition-all cursor-pointer"
+                        title="Change group avatar"
+                      >
+                        {isUploadingAvatar ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                      </button>
+                      {avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setAvatarUrl('')}
+                          className="p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-destructive transition-all cursor-pointer"
+                          title="Remove avatar and restore default"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    <p>Click to upload a group avatar</p>
+                    <p>Use the controls on the image to view, change, or restore the default.</p>
                     <p>Recommended: 256×256px, PNG or JPG</p>
                   </div>
                 </div>
@@ -410,6 +459,7 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
           )}
         </div>
       </div>
+      {previewUrl && <MediaLightbox urls={[previewUrl]} onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }

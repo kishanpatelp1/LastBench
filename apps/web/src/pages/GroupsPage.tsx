@@ -291,7 +291,7 @@ export function GroupsPage() {
 
                   <div className="mt-auto pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Users size={11} /> {(c.memberCount ?? 0).toLocaleString()} members
+                      <Users size={11} /> {c.slug === 'general' ? 'Campus-wide' : `${(c.memberCount ?? 0).toLocaleString()} members`}
                     </span>
                     <Link to={`/g/${c.slug}`} className="text-primary font-semibold hover:underline">
                       View →

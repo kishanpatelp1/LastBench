@@ -102,13 +102,23 @@ export function PostDetailPage() {
               <div className="w-full h-px bg-border my-3" />
               
               <div className="flex gap-4">
-                <div className="flex items-center gap-1.5">
-                  <Users size={16} className="text-muted-foreground" />
-                  <div>
-                    <div className="text-sm font-semibold">{community.memberCount}</div>
-                    <div className="text-xs text-muted-foreground">Members</div>
+                {community.slug === 'general' ? (
+                  <div className="flex items-center gap-1.5">
+                    <Users size={16} className="text-muted-foreground" />
+                    <div>
+                      <div className="text-sm font-semibold">Campus-wide</div>
+                      <div className="text-xs text-muted-foreground">Open to every student</div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <Users size={16} className="text-muted-foreground" />
+                    <div>
+                      <div className="text-sm font-semibold">{community.memberCount}</div>
+                      <div className="text-xs text-muted-foreground">Members</div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5">
                   <Calendar size={16} className="text-muted-foreground" />
                   <div>

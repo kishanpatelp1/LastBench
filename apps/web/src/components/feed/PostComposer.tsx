@@ -62,8 +62,8 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
   const [communityIdInitialized, setCommunityIdInitialized] = useState(false);
   useEffect(() => {
     if (!communityIdInitialized && !initialCommunityId && groups && groups.length > 0) {
-      const defaultGroup = groups.find((g) => g.isDefault) || groups[0];
-      if (defaultGroup) setCommunityId(defaultGroup.id);
+      const generalGroup = groups.find((g) => g.slug === 'general') || groups[0];
+      if (generalGroup) setCommunityId(generalGroup.id);
       setCommunityIdInitialized(true);
     }
   }, [groups, communityIdInitialized, initialCommunityId]);
@@ -82,6 +82,8 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
     if (!communityId) return null;
     return groups?.find((g) => g.id === communityId) ?? null;
   }, [groups, communityId]);
+
+  const generalGroup = useMemo(() => groups?.find((g) => g.slug === 'general') ?? null, [groups]);
 
   const filteredGroups = useMemo(() => {
     if (!groups) return [];
@@ -204,7 +206,7 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
   };
 
   const handleSubmit = async () => {
-    const targetCommunityId = communityId || groups?.find((g) => g.isDefault)?.id || groups?.[0]?.id;
+    const targetCommunityId = communityId || generalGroup?.id || groups?.[0]?.id;
 
     if (!content.trim() || !targetCommunityId) {
       toast.error('Please enter post content');
@@ -406,16 +408,16 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
 
                     <div className="space-y-1 divide-y divide-border/50">
                       {/* General Feed option — always visible at top */}
-                      {!groupSearch.trim() && (
+                      {!groupSearch.trim() && generalGroup && (
                         <button
                           type="button"
                           onClick={() => {
-                            setCommunityId('');
+                            setCommunityId(generalGroup.id);
                             setIsGroupDropdownOpen(false);
                             setGroupSearch('');
                           }}
                           className={`w-full text-left p-2 rounded-md flex items-center justify-between text-xs transition-colors cursor-pointer ${
-                            !communityId ? 'bg-primary/10 text-foreground font-semibold' : 'hover:bg-secondary text-foreground'
+                            communityId === generalGroup.id ? 'bg-primary/10 text-foreground font-semibold' : 'hover:bg-secondary text-foreground'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
@@ -425,7 +427,7 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
                             <span className="font-bold">General Feed</span>
                             <span className="text-muted-foreground truncate">No specific group</span>
                           </div>
-                          {!communityId && <Check size={14} className="text-primary shrink-0" />}
+                          {communityId === generalGroup.id && <Check size={14} className="text-primary shrink-0" />}
                         </button>
                       )}
 

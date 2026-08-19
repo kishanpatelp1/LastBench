@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Calendar, Settings, Crown, Shield, SortAsc, Globe } from 'lucide-react';
+import { Users, Calendar, Settings, Crown, Shield, SortAsc, Globe, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { api } from '../lib/api-client';
@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores/auth-store';
 import { PostCard } from '../components/feed/PostCard';
 import { PostComposer } from '../components/feed/PostComposer';
 import { GroupSettingsModal } from '../components/groups/GroupSettingsModal';
+import { MediaLightbox } from '../components/feed/MediaLightbox';
 import { Community, CommunityMember } from '../types';
 
 type Tab = 'POSTS' | 'MEMBERS';
@@ -23,6 +24,7 @@ export function GroupPage() {
   const [activeTab, setActiveTab] = useState<Tab>('POSTS');
   const [sort, setSort] = useState<SortOption>('hot');
   const [showSettings, setShowSettings] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { data: community, isLoading: isCommunityLoading } = useQuery({
     queryKey: ['community', slug],
@@ -123,19 +125,40 @@ export function GroupPage() {
         <div className="bg-card border border-border rounded-md overflow-hidden">
           {/* Banner */}
           <div
-            className="h-20 relative"
+            className="h-20 relative group"
             style={{
               background: community.bannerUrl
                 ? `url(${community.bannerUrl}) center/cover no-repeat`
                 : 'linear-gradient(135deg, hsl(var(--primary)/0.25) 0%, hsl(var(--primary)/0.05) 100%)',
             }}
-          />
+          >
+            {community.bannerUrl && (
+              <button
+                type="button"
+                onClick={() => setPreviewUrl(community.bannerUrl!)}
+                className="absolute right-2 top-2 p-1.5 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-black/80 transition-all cursor-pointer"
+                title="View banner full size"
+              >
+                <Maximize2 size={14} />
+              </button>
+            )}
+          </div>
 
           <div className="px-4 pb-3 -mt-6 flex items-end gap-3">
             {/* Group avatar */}
-            <div className="w-14 h-14 rounded-lg border-2 border-card shadow-sm overflow-hidden shrink-0 bg-primary">
+            <div className="w-14 h-14 rounded-lg border-2 border-card shadow-sm overflow-hidden shrink-0 bg-primary relative group/avatar">
               {community.avatarUrl ? (
-                <img src={community.avatarUrl} alt={community.name} className="w-full h-full object-cover" />
+                <>
+                  <img src={community.avatarUrl} alt={community.name} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setPreviewUrl(community.avatarUrl!)}
+                    className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer"
+                    title="View group avatar full size"
+                  >
+                    <Maximize2 size={15} />
+                  </button>
+                </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-primary-foreground font-bold text-xl">
                   {community.name[0]}
@@ -202,7 +225,7 @@ export function GroupPage() {
         {/* Tab bar + Sort */}
         <div className="flex items-center justify-between">
           <div className="flex bg-card border border-border rounded-md overflow-hidden">
-            {(['POSTS', 'MEMBERS'] as Tab[]).map((tab) => (
+            {((community.slug === 'general' ? ['POSTS'] : ['POSTS', 'MEMBERS']) as Tab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -356,12 +379,21 @@ export function GroupPage() {
             )}
 
             <div className="flex gap-4 text-center">
-              <div className="flex-1">
-                <div className="text-base font-bold text-foreground">{community.memberCount.toLocaleString()}</div>
-                <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                  <Users size={11} /> Members
+              {community.slug === 'general' ? (
+                <div className="flex-1">
+                  <div className="text-base font-bold text-foreground">Campus-wide</div>
+                  <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                    <Globe size={11} /> Open to every student
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex-1">
+                  <div className="text-base font-bold text-foreground">{community.memberCount.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                    <Users size={11} /> Members
+                  </div>
+                </div>
+              )}
               <div className="w-px bg-border" />
               <div className="flex-1">
                 <div className="text-base font-bold text-foreground">
@@ -375,7 +407,11 @@ export function GroupPage() {
 
             <div className="w-full h-px bg-border" />
 
-            {isAuthenticated ? (
+            {community.slug === 'general' ? (
+              <div className="w-full py-2 rounded-full text-center text-sm font-semibold border border-primary/20 bg-primary/10 text-primary">
+                Default campus feed
+              </div>
+            ) : isAuthenticated ? (
               <button
                 onClick={toggleMembership}
                 className={`w-full py-2 rounded-full text-sm font-semibold border transition-colors cursor-pointer ${
@@ -431,6 +467,7 @@ export function GroupPage() {
           onClose={() => setShowSettings(false)}
         />
       )}
+      {previewUrl && <MediaLightbox urls={[previewUrl]} onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }

@@ -198,7 +198,7 @@ export function PostCard({ post }: PostCardProps) {
     <>
     <article 
       onClick={() => navigate(`/post/${post.id}`)}
-      className="bg-card border border-border rounded-md hover:border-muted-foreground/30 transition-colors cursor-pointer flex text-card-foreground relative"
+      className="w-full max-w-3xl mx-auto bg-card border border-border rounded-md hover:border-muted-foreground/30 transition-colors cursor-pointer flex text-card-foreground relative"
     >
       {/* VOTE SIDEBAR */}
       <div className="flex flex-col items-center py-2 px-1.5 bg-secondary/30 rounded-l-md border-r border-border shrink-0 select-none">
@@ -408,7 +408,7 @@ export function PostCard({ post }: PostCardProps) {
                     <div
                       key={i}
                       className={`relative group overflow-hidden rounded cursor-pointer bg-secondary ${
-                        post.mediaUrls?.length === 1 ? 'max-h-72' : 'h-32'
+                        post.mediaUrls?.length === 1 ? 'aspect-[16/10] max-h-[32rem]' : 'aspect-[4/3]'
                       }`}
                       onClick={() => setLightboxIndex(i)}
                     >
