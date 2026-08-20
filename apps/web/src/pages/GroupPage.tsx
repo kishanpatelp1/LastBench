@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Users, Calendar, Settings, Crown, Shield, SortAsc, Globe, Maximize2 } from 'lucide-react';
@@ -124,14 +124,16 @@ export function GroupPage() {
         {/* Group Header Card */}
         <div className="bg-card border border-border rounded-md overflow-hidden">
           {/* Banner */}
-          <div
-            className="h-20 relative group"
-            style={{
-              background: community.bannerUrl
-                ? `url(${community.bannerUrl}) center/cover no-repeat`
-                : 'linear-gradient(135deg, hsl(var(--primary)/0.25) 0%, hsl(var(--primary)/0.05) 100%)',
-            }}
-          >
+          <div className="h-36 sm:h-44 relative group bg-secondary/60">
+            {community.bannerUrl ? (
+              <img
+                src={community.bannerUrl}
+                alt={`${community.name} banner`}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--primary)/0.25)_0%,hsl(var(--primary)/0.05)_100%)]" />
+            )}
             {community.bannerUrl && (
               <button
                 type="button"
@@ -317,17 +319,21 @@ export function GroupPage() {
             ) : (
               members.map((member) => (
                 <div key={member.id} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-secondary/30 transition-colors">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">
+                  <Link
+                    to={member.user.id === user?.id ? '/profile' : `/u/${member.user.username}`}
+                    className="w-8 h-8 rounded-full overflow-hidden bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0 hover:ring-2 hover:ring-primary/50 transition-shadow"
+                    title={`View u/${member.user.username}'s profile`}
+                  >
                     {member.user?.avatarUrl ? (
                       <img src={member.user.avatarUrl} alt={member.user.username} className="w-full h-full object-cover" />
                     ) : (
                       (member.user?.displayName?.[0] || member.user?.username?.[0] || 'U').toUpperCase()
                     )}
-                  </div>
+                  </Link>
 
-                  <div className="flex-1 min-w-0">
+                  <Link to={member.user.id === user?.id ? '/profile' : `/u/${member.user.username}`} className="flex-1 min-w-0 group/member">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-foreground">
+                      <span className="text-sm font-semibold text-foreground group-hover/member:text-primary group-hover/member:underline transition-colors">
                         {member.user.displayName || member.user.username}
                       </span>
                       <span className="text-xs text-muted-foreground">u/{member.user.username}</span>
@@ -348,7 +354,7 @@ export function GroupPage() {
                         {member.user.branch}{member.user.branch && member.user.year ? ' · ' : ''}{member.user.year ? `Year ${member.user.year}` : ''}
                       </p>
                     )}
-                  </div>
+                  </Link>
                 </div>
               ))
             )}

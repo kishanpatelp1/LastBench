@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api-client';
 import { useAuthStore } from '../../stores/auth-store';
@@ -61,6 +61,8 @@ export function CommentThread({ postId }: CommentThreadProps) {
     const author = comment.author;
     const replies = comment.replies ?? [];
     const [reportModalOpen, setReportModalOpen] = useState(false);
+    const canViewProfile = !comment.isAnonymous && author?.id !== 'anonymous' && !!author?.username;
+    const profilePath = author?.id === user?.id ? '/profile' : `/u/${author?.username}`;
 
     const handleCommentDelete = async () => {
       if (!confirm('Are you sure you want to delete this comment?')) return;
@@ -92,10 +94,23 @@ export function CommentThread({ postId }: CommentThreadProps) {
       <div className={cn('group', depth > 0 && 'ml-6 pl-4 border-l-2 border-border')}>
         <div className="py-3">
           <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500/80 to-fuchsia-500/80 flex items-center justify-center text-white text-[10px] font-bold">
-              {author?.displayName?.[0]?.toUpperCase() ?? author?.username?.[0]?.toUpperCase() ?? '?'}
-            </div>
-            <span className="text-sm font-medium text-foreground">{author?.displayName ?? (author?.username ? `u/${author.username}` : 'Anonymous')}</span>
+            {canViewProfile ? (
+              <Link to={profilePath} className="flex items-center gap-2 group/author">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500/80 to-fuchsia-500/80 flex items-center justify-center text-white text-[10px] font-bold">
+                  {author?.displayName?.[0]?.toUpperCase() ?? author?.username?.[0]?.toUpperCase() ?? '?'}
+                </div>
+                <span className="text-sm font-medium text-foreground group-hover/author:text-primary group-hover/author:underline transition-colors">
+                  {author?.displayName ?? `u/${author?.username}`}
+                </span>
+              </Link>
+            ) : (
+              <>
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500/80 to-fuchsia-500/80 flex items-center justify-center text-white text-[10px] font-bold">
+                  {author?.displayName?.[0]?.toUpperCase() ?? author?.username?.[0]?.toUpperCase() ?? '?'}
+                </div>
+                <span className="text-sm font-medium text-foreground">{comment.isAnonymous ? 'Anonymous' : author?.displayName ?? (author?.username ? `u/${author.username}` : 'Anonymous')}</span>
+              </>
+            )}
             <span className="text-xs text-muted-foreground">•</span>
             <span className="text-xs text-muted-foreground">{timeAgo(comment.createdAt)}</span>
           </div>
@@ -125,6 +140,7 @@ export function CommentThread({ postId }: CommentThreadProps) {
                   navigate('/login');
                   return;
                 }
+                setNewComment('');
                 setReplyTo(comment.id);
               }}
               className="text-xs text-muted-foreground hover:text-primary font-medium transition-colors flex items-center gap-1 cursor-pointer"
@@ -158,6 +174,41 @@ export function CommentThread({ postId }: CommentThreadProps) {
               </button>
             )}
           </div>
+          {replyTo === comment.id && (
+            <form onSubmit={handleSubmit} className="ml-9 mt-3 rounded-xl border border-primary/30 bg-secondary/40 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="font-semibold text-foreground">Replying to {comment.isAnonymous ? 'Anonymous' : author?.displayName ?? `u/${author?.username}`}</span>
+                <button type="button" onClick={() => setReplyTo(null)} className="text-primary hover:underline cursor-pointer">Cancel</button>
+              </div>
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Write a reply..."
+                rows={2}
+                autoFocus
+                className="w-full px-3 py-2 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
+              />
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsAnonymous(!isAnonymous)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
+                    isAnonymous ? 'bg-violet-500/10 text-violet-400' : 'bg-secondary text-muted-foreground'
+                  )}
+                >
+                  {isAnonymous ? 'Anonymous' : 'Public'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !newComment.trim()}
+                  className="px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Send size={13} /> Reply
+                </button>
+              </div>
+            </form>
+          )}
           <ReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} targetId={comment.id} targetType="COMMENT" />
         </div>
 
@@ -196,12 +247,8 @@ export function CommentThread({ postId }: CommentThreadProps) {
               ?
             </div>
             <div className="flex-1 space-y-3">
-              {replyTo && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Replying to comment</span>
-                  <button onClick={() => setReplyTo(null)} className="text-primary hover:underline cursor-pointer">Cancel</button>
-                </div>
-              )}
+              {!replyTo ? (
+                <>
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
@@ -229,6 +276,12 @@ export function CommentThread({ postId }: CommentThreadProps) {
                   Post
                 </motion.button>
               </div>
+                </>
+              ) : (
+                <div className="py-2 text-xs text-muted-foreground">
+                  Reply editor is open beneath the selected comment. <button onClick={() => setReplyTo(null)} className="text-primary hover:underline cursor-pointer">Cancel</button>
+                </div>
+              )}
             </div>
           </div>
         )}

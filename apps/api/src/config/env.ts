@@ -19,7 +19,7 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   UPLOAD_DIR: z.string().default('./uploads'),
-  MAX_FILE_SIZE: z.coerce.number().default(5242880),
+  MAX_FILE_SIZE: z.coerce.number().default(52428800), // 50MB (supports videos and high-res images)
   SUPABASE_URL: z.string().optional(),
   SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),

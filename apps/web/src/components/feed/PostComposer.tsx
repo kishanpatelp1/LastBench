@@ -41,6 +41,7 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatusText, setUploadStatusText] = useState<string>('');
   const [communityId, setCommunityId] = useState(initialCommunityId || '');
   const [groupSearch, setGroupSearch] = useState('');
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
@@ -60,13 +61,14 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
   });
 
   const [communityIdInitialized, setCommunityIdInitialized] = useState(false);
+  const generalGroup = groups?.find((g) => g.isDefault) || groups?.[0];
+
   useEffect(() => {
-    if (!communityIdInitialized && !initialCommunityId && groups && groups.length > 0) {
-      const generalGroup = groups.find((g) => g.slug === 'general') || groups[0];
-      if (generalGroup) setCommunityId(generalGroup.id);
+    if (!communityIdInitialized && !initialCommunityId && generalGroup) {
+      setCommunityId(generalGroup.id);
       setCommunityIdInitialized(true);
     }
-  }, [groups, communityIdInitialized, initialCommunityId]);
+  }, [generalGroup, communityIdInitialized, initialCommunityId]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -83,13 +85,13 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
     return groups?.find((g) => g.id === communityId) ?? null;
   }, [groups, communityId]);
 
-  const generalGroup = useMemo(() => groups?.find((g) => g.slug === 'general') ?? null, [groups]);
-
   const filteredGroups = useMemo(() => {
     if (!groups) return [];
     if (!groupSearch.trim()) return groups;
     const q = groupSearch.toLowerCase().trim();
-    return groups.filter((g) => g.name.toLowerCase().includes(q) || g.slug.toLowerCase().includes(q));
+    return groups.filter(
+      (g) => g.name.toLowerCase().includes(q) || g.slug.toLowerCase().includes(q)
+    );
   }, [groups, groupSearch]);
 
   const triggerConfetti = () => {
@@ -135,25 +137,31 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
       return;
     }
 
+    setPostType('IMAGE');
     setIsUploading(true);
+    setUploadStatusText('Uploading image...');
     try {
+      let count = 0;
       for (const file of files) {
+        count++;
         if (!file.type.startsWith('image/')) {
           toast.error(`${file.name} is not an image`);
           continue;
         }
-        if (file.size > 5 * 1024 * 1024) {
-          toast.error(`${file.name} is larger than 5MB`);
+        if (file.size > 25 * 1024 * 1024) {
+          toast.error(`${file.name} is larger than 25MB`);
           continue;
         }
+        setUploadStatusText(`Uploading image ${count} of ${files.length}...`);
         const res = await api.uploadFile(file);
         setSelectedImages((prev) => [...prev, { url: res.url, file }]);
       }
-      setPostType('IMAGE');
+      toast.success('Image uploaded successfully!');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Image upload failed');
     } finally {
       setIsUploading(false);
+      setUploadStatusText('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -171,15 +179,19 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
       return;
     }
 
+    setPostType('VIDEO');
     setIsUploading(true);
+    const sizeInMb = (file.size / (1024 * 1024)).toFixed(1);
+    setUploadStatusText(`Uploading video (${sizeInMb} MB)...`);
     try {
       const res = await api.uploadFile(file);
       setSelectedVideo({ url: res.url, file });
-      setPostType('VIDEO');
+      toast.success('Video uploaded successfully!');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Video upload failed');
     } finally {
       setIsUploading(false);
+      setUploadStatusText('');
       if (videoInputRef.current) videoInputRef.current.value = '';
     }
   };
@@ -308,75 +320,99 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
         <div className="p-2.5 sm:p-3">
           <div className="flex items-center gap-2 sm:gap-3">
             {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.username} className="w-8 h-8 rounded-full object-cover border border-border shrink-0" />
+              <img
+                src={user.avatarUrl}
+                alt={user.displayName || user.username}
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shrink-0 border border-border"
+              />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
-                {user?.displayName?.[0]?.toUpperCase() ?? user?.username?.[0]?.toUpperCase() ?? 'U'}
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 border border-primary/20">
+                {user?.displayName?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
               </div>
             )}
             <button
+              type="button"
               onClick={() => setIsOpen(true)}
-              className="flex-1 min-w-0 text-left px-3 sm:px-4 py-2 bg-secondary rounded-full text-xs sm:text-sm text-muted-foreground hover:bg-secondary/80 transition-colors font-medium flex items-center gap-2 cursor-pointer truncate"
+              className="flex-1 text-left px-3.5 py-2 sm:py-2.5 rounded-full bg-secondary/70 hover:bg-secondary border border-border text-muted-foreground text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-between group"
             >
-              <PenSquare size={14} className="text-primary shrink-0" />
-              <span className="truncate">Create a post or share with campus...</span>
+              <span>Create a post or ask a campus question...</span>
+              <PenSquare size={15} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             </button>
-            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-              <button onClick={() => { setIsOpen(true); setPostType('IMAGE'); }} className="p-1.5 sm:p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Add image">
-                <ImageIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
-              </button>
-              <button onClick={() => { setIsOpen(true); setPostType('VIDEO'); }} className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Add video">
-                <Video size={18} />
-              </button>
-              <button onClick={() => { setIsOpen(true); setPostType('LINK'); }} className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Embed link">
-                <LinkIcon size={18} />
-              </button>
-              <button onClick={() => { setIsOpen(true); setPostType('POLL'); }} className="p-1.5 sm:p-2 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer" title="Create poll">
-                <BarChart3 size={16} className="sm:w-[18px] sm:h-[18px]" />
-              </button>
-            </div>
+          </div>
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50 text-[11px] sm:text-xs text-muted-foreground px-1">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(true);
+                setPostType('IMAGE');
+              }}
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer py-1"
+            >
+              <ImageIcon size={14} className="text-emerald-500" />
+              <span>Image</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(true);
+                setPostType('VIDEO');
+              }}
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer py-1"
+            >
+              <Film size={14} className="text-violet-500" />
+              <span>Video</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(true);
+                setPostType('POLL');
+              }}
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer py-1"
+            >
+              <BarChart3 size={14} className="text-blue-500" />
+              <span>Poll</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(true);
+                setPostType('LINK');
+              }}
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer py-1"
+            >
+              <LinkIcon size={14} className="text-amber-500" />
+              <span>Link</span>
+            </button>
           </div>
         </div>
       )}
 
-      {/* Expanded state */}
+      {/* Expanded Composer Modal/Form */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col"
+            className="border-t border-border bg-card"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-primary" />
-                <h3 className="text-sm font-bold text-foreground">Create a Post</h3>
-              </div>
-              <button onClick={handleClose} className="p-1 rounded-full hover:bg-secondary text-muted-foreground cursor-pointer transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {/* Searchable Target Group Picker */}
-              <div className="space-y-1 relative" ref={dropdownRef}>
-                <label className="text-xs font-semibold text-muted-foreground">Select Group / Community</label>
-                
+            <div className="p-3.5 sm:p-4 space-y-3">
+              {/* Target Community Selector */}
+              <div className="relative" ref={dropdownRef}>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Post to Community
+                </label>
                 <div
                   onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-secondary border border-border hover:border-primary/40 transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 rounded-lg bg-secondary border border-border flex items-center justify-between text-xs text-foreground cursor-pointer hover:border-primary/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    {selectedGroup ? (
-                      <div className="w-6 h-6 rounded bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
-                        {selectedGroup.name[0]}
-                      </div>
-                    ) : (
-                      <div className="w-6 h-6 rounded bg-secondary border border-border flex items-center justify-center text-xs shrink-0">🏠</div>
-                    )}
-                    <span className="text-xs font-bold text-foreground truncate">
+                    <div className="w-5 h-5 rounded bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
+                      {selectedGroup ? selectedGroup.name[0] : '🏠'}
+                    </div>
+                    <span className="font-bold truncate">
                       {selectedGroup ? `g/${selectedGroup.slug}` : 'General Feed'}
                     </span>
                     <span className="text-xs text-muted-foreground truncate hidden sm:inline">
@@ -478,75 +514,76 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
                   <button
                     type="button"
                     onClick={() => setIsAnonymous(false)}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                    className={`py-2 px-3 rounded-md flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
                       !isAnonymous
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                        ? 'bg-card text-foreground shadow-sm border border-border'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <Eye size={14} />
-                    <span>Public (u/{user?.username || 'user'})</span>
+                    <Eye size={15} className={!isAnonymous ? 'text-primary' : ''} />
+                    <span>Public as u/{user?.username}</span>
                   </button>
-
                   <button
                     type="button"
                     onClick={() => setIsAnonymous(true)}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                    className={`py-2 px-3 rounded-md flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
                       isAnonymous
-                        ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                        ? 'bg-card text-purple-400 shadow-sm border border-purple-500/30'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <EyeOff size={14} />
-                    <span>Anonymous</span>
+                    <EyeOff size={15} className={isAnonymous ? 'text-purple-400' : ''} />
+                    <span>Post Anonymously</span>
                   </button>
-                </div>
-                
-                <div className={`p-2 rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-all ${
-                  isAnonymous 
-                    ? 'bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20' 
-                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/20'
-                }`}>
-                  <Shield size={12} className="shrink-0" />
-                  <span>
-                    {isAnonymous
-                      ? 'Anonymous Post: Your name and profile will be hidden. Posted as u/Anonymous.'
-                      : `Public Post: Posted under your campus handle u/${user?.username || 'user'}.`}
-                  </span>
                 </div>
               </div>
 
-              {/* Title (Optional) */}
+              {/* Title input (optional) */}
               <input
+                id="composer-post-title"
+                name="postTitle"
+                aria-label="Post title"
                 type="text"
+                placeholder="Title (optional, but recommended)"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Title (optional)"
-                className="w-full px-3 py-2 rounded-md bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm font-semibold"
+                maxLength={200}
+                className="w-full px-3 py-2 rounded-md bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 text-xs sm:text-sm font-semibold"
               />
 
-              {/* LINK EMBED INPUT */}
+              {/* URL Link Input */}
               {postType === 'LINK' && (
                 <div className="space-y-1.5 p-3 rounded-lg bg-secondary/40 border border-primary/30">
                   <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <LinkIcon size={14} className="text-primary" /> Embed External URL Link
+                    <LinkIcon size={14} className="text-primary" /> External Resource / Link URL
                   </label>
-                  <input
-                    type="url"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    placeholder="Paste link URL (e.g. https://github.com/..., https://youtube.com/watch?v=...)"
-                    className="w-full px-3 py-2 rounded-md bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <p className="text-[10px] text-muted-foreground">Pasted link will generate a clickable preview card on your post.</p>
+                  <div className="flex gap-2">
+                    <input
+                      id="composer-link-url"
+                      name="linkUrl"
+                      aria-label="External link URL"
+                      type="url"
+                      placeholder="https://github.com/... or https://drive.google.com/..."
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      className="flex-1 px-3 py-1.5 rounded-md bg-secondary border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
                 </div>
               )}
 
-              {/* Content Body */}
+              {/* Content textarea */}
               <textarea
+                id="composer-post-content"
+                name="postContent"
+                aria-label="Post body content"
+                placeholder={
+                  isAnonymous
+                    ? "Share your honest campus confession or query anonymously..."
+                    : "Share notes, events, placement advice, or questions with campus..."
+                }
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="What's on your mind? Share campus news, questions, or memes..."
                 rows={4}
                 className="w-full px-3 py-2 rounded-md bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm resize-none"
               />
@@ -579,6 +616,15 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
                         </button>
                       </div>
                     ))}
+
+                    {/* Animated Uploading Card */}
+                    {isUploading && (
+                      <div className="relative rounded-md overflow-hidden border-2 border-dashed border-primary/60 bg-primary/5 aspect-square flex flex-col items-center justify-center p-2 text-center animate-pulse">
+                        <Loader size={22} className="text-primary animate-spin mb-1.5" />
+                        <span className="text-[10px] font-bold text-primary leading-tight">{uploadStatusText || 'Uploading...'}</span>
+                        <span className="text-[9px] text-muted-foreground mt-0.5">Please wait</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -594,13 +640,27 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
                       type="button"
                       onClick={() => videoInputRef.current?.click()}
                       disabled={isUploading}
-                      className="text-xs text-primary font-semibold hover:underline"
+                      className="text-xs text-primary font-semibold hover:underline disabled:opacity-50"
                     >
                       {selectedVideo ? 'Change Video' : '+ Select Video'}
                     </button>
                   </div>
 
-                  {selectedVideo ? (
+                  {isUploading ? (
+                    <div className="py-8 px-4 border-2 border-dashed border-primary/60 rounded-lg text-center bg-primary/5 space-y-3">
+                      <div className="relative w-12 h-12 mx-auto flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
+                        <Loader size={28} className="text-primary animate-spin" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-foreground">{uploadStatusText || 'Uploading campus video...'}</p>
+                        <p className="text-[11px] text-muted-foreground">Uploading to cloud CDN. Please don&apos;t close this window.</p>
+                      </div>
+                      <div className="w-48 h-1.5 bg-secondary rounded-full mx-auto overflow-hidden">
+                        <div className="w-full h-full bg-primary animate-pulse rounded-full" />
+                      </div>
+                    </div>
+                  ) : selectedVideo ? (
                     <div className="relative rounded-lg overflow-hidden bg-black max-h-48 border border-border">
                       <video src={selectedVideo.url} controls className="w-full max-h-48 object-contain" />
                       <button
@@ -770,7 +830,15 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
                     className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
                   >
                     {isSubmitting ? (
-                      <Loader size={14} className="animate-spin" />
+                      <>
+                        <Loader size={14} className="animate-spin" />
+                        <span>Posting...</span>
+                      </>
+                    ) : isUploading ? (
+                      <>
+                        <Loader size={14} className="animate-spin" />
+                        <span>Uploading...</span>
+                      </>
                     ) : (
                       <>
                         <span>Post</span>

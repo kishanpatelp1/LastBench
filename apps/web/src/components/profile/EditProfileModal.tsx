@@ -97,7 +97,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
                   type="text"
                   value={formData.username}
                   onChange={handleChange}
-                  placeholder="cool_student"
+                  placeholder="your_handle"
                   required
                   className="w-full pl-8 pr-4 py-2 bg-transparent border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary border-border font-medium"
                 />

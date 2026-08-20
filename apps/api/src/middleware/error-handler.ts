@@ -53,8 +53,28 @@ export function normalizePrismaError(err: unknown): AppError | null {
   }
 }
 
+/**
+ * Turn a Multer upload error into a friendly AppError with proper HTTP status codes (413/400).
+ */
+export function normalizeMulterError(err: unknown): AppError | null {
+  if (typeof err === 'object' && err !== null && (err as { name?: string }).name === 'MulterError') {
+    const code = (err as { code?: string }).code;
+    if (code === 'LIMIT_FILE_SIZE') {
+      return new AppError(413, 'File is too large. Maximum allowed size is 50MB.', 'FILE_TOO_LARGE');
+    }
+    if (code === 'LIMIT_FILE_COUNT') {
+      return new AppError(400, 'Too many files uploaded.', 'TOO_MANY_FILES');
+    }
+    if (code === 'LIMIT_UNEXPECTED_FILE') {
+      return new AppError(400, 'Unexpected file field.', 'UNEXPECTED_FILE');
+    }
+    return new AppError(400, `Upload error: ${(err as Error).message || 'Invalid upload'}`, 'UPLOAD_ERROR');
+  }
+  return null;
+}
+
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
-  const normalized = normalizePrismaError(err);
+  const normalized = normalizePrismaError(err) || normalizeMulterError(err);
   if (normalized) {
     err = normalized;
   }

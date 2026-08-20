@@ -388,17 +388,27 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
 
                       return (
                         <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border hover:border-border/80">
-                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => navigate(member.user.id === user?.id ? '/profile' : `/u/${member.user.username}`)}
+                            className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden hover:ring-2 hover:ring-primary/50 transition-shadow cursor-pointer"
+                            title={`View u/${member.user.username}'s profile`}
+                          >
                             {member.user?.avatarUrl ? (
                               <img src={member.user.avatarUrl} alt={member.user.username} className="w-full h-full object-cover" />
                             ) : (
                               (member.user?.displayName?.[0] || member.user?.username?.[0] || 'U').toUpperCase()
                             )}
-                          </div>
+                          </button>
 
-                          <div className="flex-1 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => navigate(member.user.id === user?.id ? '/profile' : `/u/${member.user.username}`)}
+                            className="flex-1 min-w-0 text-left cursor-pointer"
+                            title={`View u/${member.user.username}'s profile`}
+                          >
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-semibold text-foreground">u/{member.user?.username}</span>
+                              <span className="text-sm font-semibold text-foreground hover:text-primary hover:underline">u/{member.user?.username}</span>
                               {getRoleBadge(member.role)}
                               {isCurrentUser && <span className="text-[10px] text-muted-foreground">(you)</span>}
                             </div>
@@ -407,7 +417,7 @@ export function GroupSettingsModal({ community, onClose }: GroupSettingsModalPro
                                 {member.user.branch}{member.user.branch && member.user.year ? ' • ' : ''}{member.user.year ? `Year ${member.user.year}` : ''}
                               </div>
                             )}
-                          </div>
+                          </button>
 
                           {canManage && !isCurrentUser && member.role !== 'OWNER' && (
                             <div className="flex items-center gap-1 shrink-0">

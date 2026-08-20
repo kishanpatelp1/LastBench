@@ -251,16 +251,19 @@ export function GroupsPage() {
             {communities.map((c) => (
               <div key={c.id} className="bg-card border border-border rounded-md overflow-hidden hover:border-primary/40 transition-colors flex flex-col">
                 {/* Mini banner */}
-                <div
-                  className="h-10"
-                  style={{
-                    background: c.bannerUrl
-                      ? `url(${c.bannerUrl}) center/cover no-repeat`
-                      : 'linear-gradient(135deg, hsl(var(--primary)/0.2), hsl(var(--primary)/0.04))',
-                  }}
-                />
+                <div className="h-24 relative bg-secondary/60">
+                  {c.bannerUrl ? (
+                    <img
+                      src={c.bannerUrl}
+                      alt={`${c.name} banner`}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--primary)/0.2),hsl(var(--primary)/0.04))]" />
+                  )}
+                </div>
 
-                <div className="p-3 flex flex-col gap-2 flex-1 -mt-5">
+                <div className="p-3 flex flex-col gap-2 flex-1 -mt-5 relative">
                   <div className="flex items-start justify-between gap-2">
                     <Link to={`/g/${c.slug}`} className="flex items-center gap-2 group">
                       {/* Group avatar */}
