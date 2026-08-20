@@ -11,7 +11,11 @@ export const redis = new Redis(env.REDIS_URL, {
 });
 
 redis.on('error', (err) => {
-  logger.error({ err: err.message }, 'Redis connection error');
+  if (err.message.includes('max requests limit exceeded')) {
+    logger.warn('[REDIS] Upstream request limit reached. In-memory sliding window fallback active.');
+  } else {
+    logger.warn({ err: err.message }, '[REDIS] Connection error');
+  }
 });
 
 redis.on('connect', () => {

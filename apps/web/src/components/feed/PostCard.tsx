@@ -401,6 +401,7 @@ export function PostCard({ post }: PostCardProps) {
               {post.type === 'VIDEO' || isVideoUrl(post.mediaUrls[0] || '') ? (
                 <FeedVideoPlayer
                   src={post.mediaUrls[0]!}
+                  id={post.id}
                   onFullscreen={() => setShowVideoLightbox(true)}
                 />
               ) : (

@@ -312,5 +312,22 @@ export async function enqueueNotification(
   body?: string,
   data?: Record<string, unknown>,
 ) {
-  await notificationQueue.add('create', { recipientId, type, title, body, data });
+  try {
+    await notificationQueue.add('create', { recipientId, type, title, body, data });
+  } catch {
+    // If Redis is down or request-capped, write directly to PostgreSQL so notifications are never lost
+    try {
+      await prisma.notification.create({
+        data: {
+          recipientId,
+          type: type as NotificationType,
+          title,
+          body,
+          data: data ? (JSON.parse(JSON.stringify(data)) as Prisma.InputJsonValue) : undefined,
+        },
+      });
+    } catch (dbErr) {
+      logger.warn({ err: dbErr }, '[NOTIFICATION] Direct DB fallback write failed');
+    }
+  }
 }

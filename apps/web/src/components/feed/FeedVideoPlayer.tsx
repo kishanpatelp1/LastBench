@@ -1,14 +1,36 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// ─── Global Single-Video Coordinator ──────────────────────────────────────────
+// Ensures only ONE video plays across the entire application at any given time.
+type VideoPlayListener = (activeId: string) => void;
+const activeListeners = new Set<VideoPlayListener>();
+let currentActiveVideoId: string | null = null;
+
+function notifyVideoStartedPlaying(id: string) {
+  currentActiveVideoId = id;
+  activeListeners.forEach((listener) => listener(id));
+}
+
+function registerVideoListener(listener: VideoPlayListener) {
+  activeListeners.add(listener);
+  return () => {
+    activeListeners.delete(listener);
+  };
+}
+
 interface FeedVideoPlayerProps {
   src: string;
+  id?: string;
   onFullscreen?: () => void;
   className?: string;
 }
 
-export function FeedVideoPlayer({ src, onFullscreen, className = '' }: FeedVideoPlayerProps) {
+export function FeedVideoPlayer({ src, id, onFullscreen, className = '' }: FeedVideoPlayerProps) {
+  const autoId = useId();
+  const playerId = id || src || autoId;
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -20,40 +42,69 @@ export function FeedVideoPlayer({ src, onFullscreen, className = '' }: FeedVideo
   const [showCenterIcon, setShowCenterIcon] = useState<'play' | 'pause' | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
-  // ─── IntersectionObserver for Feed Autoplay & Auto-Pause ──────────
+  // ─── Global Single-Video Lock Listener ──────────────────────────────────────
+  useEffect(() => {
+    const unregister = registerVideoListener((activeId) => {
+      // If another video started playing, pause this one immediately
+      if (activeId !== playerId) {
+        const video = videoRef.current;
+        if (video && !video.paused) {
+          video.pause();
+          setIsPlaying(false);
+        }
+      }
+    });
+
+    return () => {
+      unregister();
+    };
+  }, [playerId]);
+
+  // ─── IntersectionObserver for Feed Autoplay & Auto-Pause ────────────────────
   useEffect(() => {
     const video = videoRef.current;
     const container = containerRef.current;
     if (!video || !container) return;
-
-    let isManuallyPaused = false;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
         if (!entry) return;
 
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-          // Scrolled into view -> autoplay (muted by default)
-          if (!isManuallyPaused) {
-            video
-              .play()
-              .then(() => setIsPlaying(true))
-              .catch(() => {
-                // Autoplay blocked by browser policy (keep muted and retry if needed)
-                video.muted = true;
-                setIsMuted(true);
-                video.play().then(() => setIsPlaying(true)).catch(() => {});
-              });
-          }
-        } else if (entry.intersectionRatio < 0.2) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+          // Scrolled into center view -> autoplay (muted by default)
+          // Broadcast to ensure all other feed videos immediately pause
+          video
+            .play()
+            .then(() => {
+              setIsPlaying(true);
+              notifyVideoStartedPlaying(playerId);
+            })
+            .catch(() => {
+              // If browser blocked unmuted playback, enforce muted and retry
+              video.muted = true;
+              setIsMuted(true);
+              video
+                .play()
+                .then(() => {
+                  setIsPlaying(true);
+                  notifyVideoStartedPlaying(playerId);
+                })
+                .catch(() => {});
+            });
+        } else if (entry.intersectionRatio < 0.25) {
           // Scrolled away -> auto pause to save resources
-          video.pause();
-          setIsPlaying(false);
+          if (!video.paused) {
+            video.pause();
+            setIsPlaying(false);
+          }
+          if (currentActiveVideoId === playerId) {
+            currentActiveVideoId = null;
+          }
         }
       },
       {
-        threshold: [0.15, 0.5, 0.75],
+        threshold: [0.2, 0.55, 0.8],
         rootMargin: '0px 0px -50px 0px',
       }
     );
@@ -62,10 +113,13 @@ export function FeedVideoPlayer({ src, onFullscreen, className = '' }: FeedVideo
 
     return () => {
       observer.disconnect();
+      if (video && !video.paused) {
+        video.pause();
+      }
     };
-  }, []);
+  }, [playerId]);
 
-  // ─── Video Event Listeners ─────────────────────────────────────────
+  // ─── Video Event Listeners ──────────────────────────────────────────────────
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
@@ -85,7 +139,7 @@ export function FeedVideoPlayer({ src, onFullscreen, className = '' }: FeedVideo
     }
   };
 
-  // ─── Controls ──────────────────────────────────────────────────────
+  // ─── Controls ───────────────────────────────────────────────────────────────
   const togglePlay = useCallback(
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
@@ -97,6 +151,7 @@ export function FeedVideoPlayer({ src, onFullscreen, className = '' }: FeedVideo
           .play()
           .then(() => {
             setIsPlaying(true);
+            notifyVideoStartedPlaying(playerId);
             setShowCenterIcon('play');
             setTimeout(() => setShowCenterIcon(null), 500);
           })
@@ -104,11 +159,14 @@ export function FeedVideoPlayer({ src, onFullscreen, className = '' }: FeedVideo
       } else {
         video.pause();
         setIsPlaying(false);
+        if (currentActiveVideoId === playerId) {
+          currentActiveVideoId = null;
+        }
         setShowCenterIcon('pause');
         setTimeout(() => setShowCenterIcon(null), 500);
       }
     },
-    []
+    [playerId]
   );
 
   const toggleMute = useCallback(

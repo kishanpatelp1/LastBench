@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api-client';
 import { useAuthStore } from '../../stores/auth-store';
 import { motion } from 'framer-motion';
-import { ArrowUp, ArrowDown, MessageSquare, Send, Trash2, Flag } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageSquare, Send, Trash2, Flag, X } from 'lucide-react';
 import { cn, timeAgo, formatNumber } from '../../lib/utils';
 import { toast } from 'sonner';
 import { ReportModal } from '../ReportModal';
+import { GifPicker } from './GifPicker';
 import type { Comment } from '../../types';
 
 interface CommentThreadProps {
@@ -20,6 +21,58 @@ interface CommentItemProps {
   depth?: number;
 }
 
+function renderCommentBody(content: string) {
+  // Detect markdown images ![alt](url) and standalone GIF / media URLs
+  const markdownImgRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s]+)\)/g;
+  const standaloneUrlRegex = /(https?:\/\/[^\s]+(?:\.gif|\.png|\.webp|\.jpg|\.jpeg|giphy\.com\/media\/|tenor\.com\/view\/)[^\s]*)/gi;
+
+  const mediaUrls: string[] = [];
+  let text = content;
+
+  // Extract markdown images
+  text = text.replace(markdownImgRegex, (_match, _alt, url) => {
+    mediaUrls.push(url);
+    return '';
+  });
+
+  // Extract standalone image URLs
+  text = text.replace(standaloneUrlRegex, (url) => {
+    if (!mediaUrls.includes(url)) {
+      mediaUrls.push(url);
+    }
+    return '';
+  });
+
+  const trimmedText = text.trim();
+
+  return (
+    <div className="space-y-2">
+      {trimmedText && (
+        <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line break-words">
+          {trimmedText}
+        </p>
+      )}
+      {mediaUrls.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {mediaUrls.map((url, i) => (
+            <div
+              key={i}
+              className="rounded-xl overflow-hidden max-w-xs max-h-60 bg-secondary/80 border border-border shadow-xs"
+            >
+              <img
+                src={url}
+                alt="Comment reaction"
+                loading="lazy"
+                className="w-full h-full object-contain block max-h-56 rounded-lg hover:scale-102 transition-transform"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -27,6 +80,8 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
 
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState('');
+  const [replyGif, setReplyGif] = useState<string | null>(null);
+  const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
   const [isAnonymousReply, setIsAnonymousReply] = useState(false);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -69,17 +124,26 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
       navigate('/login');
       return;
     }
-    if (!replyContent.trim()) return;
+
+    const trimmedText = replyContent.trim();
+    if (!trimmedText && !replyGif) return;
+
+    const finalContent = replyGif
+      ? trimmedText
+        ? `${trimmedText}\n\n![gif](${replyGif})`
+        : `![gif](${replyGif})`
+      : trimmedText;
 
     setIsSubmittingReply(true);
     try {
       await api.createComment({
         postId,
-        content: replyContent.trim(),
+        content: finalContent,
         isAnonymous: isAnonymousReply,
         parentId: comment.id,
       });
       setReplyContent('');
+      setReplyGif(null);
       setIsReplying(false);
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       toast.success('Reply posted!');
@@ -116,9 +180,12 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
           <span className="text-xs text-muted-foreground">•</span>
           <span className="text-xs text-muted-foreground">{timeAgo(comment.createdAt)}</span>
         </div>
-        <p className="text-sm text-foreground/90 leading-relaxed ml-9">
-          {comment.content}
-        </p>
+
+        {/* Comment Content with GIF Support */}
+        <div className="ml-9">
+          {renderCommentBody(comment.content)}
+        </div>
+
         <div className="flex items-center gap-3 ml-9 mt-2">
           <div className="flex items-center gap-0.5 text-muted-foreground">
             <button
@@ -204,20 +271,46 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
               autoFocus
               className="w-full px-3 py-2 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
             />
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setIsAnonymousReply(!isAnonymousReply)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
-                  isAnonymousReply ? 'bg-violet-500/10 text-violet-400' : 'bg-secondary text-muted-foreground'
-                )}
-              >
-                {isAnonymousReply ? '🔒 Anonymous' : '👤 Public'}
-              </button>
+
+            {/* Selected GIF Preview */}
+            {replyGif && (
+              <div className="relative inline-block rounded-lg overflow-hidden border border-primary/40 bg-black/40">
+                <img src={replyGif} alt="Selected GIF" className="max-h-32 rounded-lg object-contain" />
+                <button
+                  type="button"
+                  onClick={() => setReplyGif(null)}
+                  className="absolute top-1 right-1 p-1 rounded-full bg-black/70 hover:bg-black text-white cursor-pointer"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAnonymousReply(!isAnonymousReply)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
+                    isAnonymousReply ? 'bg-violet-500/10 text-violet-400' : 'bg-secondary text-muted-foreground'
+                  )}
+                >
+                  {isAnonymousReply ? '🔒 Anonymous' : '👤 Public'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsGifPickerOpen(true)}
+                  className="px-2.5 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-black text-xs flex items-center gap-1 transition-colors cursor-pointer border border-border"
+                  title="Add GIF or Sticker"
+                >
+                  <span className="bg-primary/20 text-primary px-1 py-0.5 rounded text-[9px] font-black">GIF</span>
+                </button>
+              </div>
+
               <button
                 type="submit"
-                disabled={isSubmittingReply || !replyContent.trim()}
+                disabled={isSubmittingReply || (!replyContent.trim() && !replyGif)}
                 className="px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
               >
                 <Send size={13} /> Reply
@@ -226,6 +319,7 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
           </form>
         )}
         <ReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} targetId={comment.id} targetType="COMMENT" />
+        <GifPicker isOpen={isGifPickerOpen} onClose={() => setIsGifPickerOpen(false)} onSelectGif={(url) => setReplyGif(url)} />
       </div>
 
       {replies.map((reply) => (
@@ -240,6 +334,8 @@ export function CommentThread({ postId }: CommentThreadProps) {
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuthStore();
   const [newComment, setNewComment] = useState('');
+  const [selectedGif, setSelectedGif] = useState<string | null>(null);
+  const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -257,15 +353,24 @@ export function CommentThread({ postId }: CommentThreadProps) {
       navigate('/login');
       return;
     }
-    if (!newComment.trim()) return;
+    const trimmedText = newComment.trim();
+    if (!trimmedText && !selectedGif) return;
+
+    const finalContent = selectedGif
+      ? trimmedText
+        ? `${trimmedText}\n\n![gif](${selectedGif})`
+        : `![gif](${selectedGif})`
+      : trimmedText;
+
     setIsSubmitting(true);
     try {
       await api.createComment({
         postId,
-        content: newComment.trim(),
+        content: finalContent,
         isAnonymous,
       });
       setNewComment('');
+      setSelectedGif(null);
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       toast.success('Comment posted!');
     } catch (err) {
@@ -308,25 +413,52 @@ export function CommentThread({ postId }: CommentThreadProps) {
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment..."
+                placeholder="Add a comment or reaction..."
                 rows={2}
                 className="w-full px-4 py-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
               />
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setIsAnonymous(!isAnonymous)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
-                    isAnonymous ? 'bg-violet-500/10 text-violet-400' : 'bg-secondary text-muted-foreground'
-                  )}
-                >
-                  {isAnonymous ? '🔒 Anonymous' : '👤 Public'}
-                </button>
+
+              {/* Selected GIF Preview */}
+              {selectedGif && (
+                <div className="relative inline-block rounded-lg overflow-hidden border border-primary/40 bg-black/40">
+                  <img src={selectedGif} alt="Selected GIF" className="max-h-36 rounded-lg object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGif(null)}
+                    className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/70 hover:bg-black text-white cursor-pointer"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAnonymous(!isAnonymous)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
+                      isAnonymous ? 'bg-violet-500/10 text-violet-400' : 'bg-secondary text-muted-foreground'
+                    )}
+                  >
+                    {isAnonymous ? '🔒 Anonymous' : '👤 Public'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsGifPickerOpen(true)}
+                    className="px-2.5 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-black text-xs flex items-center gap-1 transition-colors cursor-pointer border border-border"
+                    title="Add GIF or Sticker"
+                  >
+                    <span className="bg-primary/20 text-primary px-1 py-0.5 rounded text-[9px] font-black">GIF</span>
+                    <span className="text-[11px] text-muted-foreground font-medium">Stickers</span>
+                  </button>
+                </div>
+
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   type="submit"
-                  disabled={isSubmitting || !newComment.trim()}
+                  disabled={isSubmitting || (!newComment.trim() && !selectedGif)}
                   className="px-4 py-1.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                 >
                   <Send size={14} />
@@ -362,6 +494,12 @@ export function CommentThread({ postId }: CommentThreadProps) {
           </div>
         )}
       </div>
+
+      <GifPicker
+        isOpen={isGifPickerOpen}
+        onClose={() => setIsGifPickerOpen(false)}
+        onSelectGif={(url) => setSelectedGif(url)}
+      />
     </div>
   );
 }
