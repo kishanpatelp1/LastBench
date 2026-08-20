@@ -98,8 +98,8 @@ export function GroupPage() {
   if (isCommunityLoading) {
     return (
       <div className="max-w-[1240px] mx-auto px-4 py-8 space-y-3">
-        <div className="bg-card border border-border rounded-md h-32 animate-pulse" />
-        <div className="bg-card border border-border rounded-md h-64 animate-pulse" />
+        <div className="bg-card border border-border rounded-xl h-44 animate-pulse" />
+        <div className="bg-card border border-border rounded-xl h-64 animate-pulse" />
       </div>
     );
   }
@@ -121,112 +121,120 @@ export function GroupPage() {
       {/* ─── MAIN COLUMN ───────────────────────────────────── */}
       <div className="flex-1 min-w-0 space-y-3">
 
-        {/* Group Header Card */}
-        <div className="bg-card border border-border rounded-md overflow-hidden">
-          {/* Banner */}
-          <div className="h-36 sm:h-44 relative group bg-secondary/60">
+        {/* Group Header Card — Reddit Style */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+          {/* Full-width Banner */}
+          <div className="h-36 sm:h-52 md:h-60 relative group bg-secondary/80 overflow-hidden">
             {community.bannerUrl ? (
               <img
                 src={community.bannerUrl}
                 alt={`${community.name} banner`}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover object-center"
               />
             ) : (
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--primary)/0.25)_0%,hsl(var(--primary)/0.05)_100%)]" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-purple-600/20 to-blue-600/20" />
             )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
             {community.bannerUrl && (
               <button
                 type="button"
                 onClick={() => setPreviewUrl(community.bannerUrl!)}
-                className="absolute right-2 top-2 p-1.5 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-black/80 transition-all cursor-pointer"
+                className="absolute right-3 top-3 p-2 rounded-lg bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-black/80 transition-all cursor-pointer shadow-sm"
                 title="View banner full size"
               >
-                <Maximize2 size={14} />
+                <Maximize2 size={15} />
               </button>
             )}
           </div>
 
-          <div className="px-4 pb-3 -mt-6 flex items-end gap-3">
-            {/* Group avatar */}
-            <div className="w-14 h-14 rounded-lg border-2 border-card shadow-sm overflow-hidden shrink-0 bg-primary relative group/avatar">
-              {community.avatarUrl ? (
-                <>
-                  <img src={community.avatarUrl} alt={community.name} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setPreviewUrl(community.avatarUrl!)}
-                    className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer"
-                    title="View group avatar full size"
-                  >
-                    <Maximize2 size={15} />
-                  </button>
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-primary-foreground font-bold text-xl">
-                  {community.name[0]}
+          {/* Subreddit Bar Info */}
+          <div className="px-4 sm:px-6 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 -mt-8 sm:-mt-10 relative z-10">
+              <div className="flex items-end gap-3.5 min-w-0">
+                {/* Group avatar */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ring-4 ring-card shadow-md overflow-hidden shrink-0 bg-primary relative group/avatar">
+                  {community.avatarUrl ? (
+                    <>
+                      <img src={community.avatarUrl} alt={community.name} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPreviewUrl(community.avatarUrl!)}
+                        className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer"
+                        title="View group avatar full size"
+                      >
+                        <Maximize2 size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-primary-foreground font-extrabold text-2xl">
+                      {community.name[0]}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <div className="min-w-0 pb-1">
+                  <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight leading-tight truncate">
+                    {community.name}
+                  </h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-semibold">g/{community.slug}</p>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 shrink-0 pb-1">
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="p-2 rounded-full border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                    title="Group settings"
+                  >
+                    <Settings size={16} />
+                  </button>
+                )}
+                {community.slug === 'general' ? (
+                  <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-primary/10 border border-primary/20 text-primary flex items-center gap-1.5 shadow-sm">
+                    <Globe size={14} /> Default Campus Square
+                  </span>
+                ) : (
+                  <button
+                    onClick={toggleMembership}
+                    disabled={isJoining}
+                    className={`px-5 py-2 rounded-full text-xs sm:text-sm font-bold border transition-all cursor-pointer shadow-sm ${
+                      isMember
+                        ? 'border-border text-foreground hover:bg-secondary hover:text-destructive hover:border-destructive/50'
+                        : 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90'
+                    }`}
+                  >
+                    {isMember ? 'Joined ✓' : 'Join Group'}
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="flex-1 min-w-0 pt-6">
-              <h1 className="text-lg font-bold text-foreground leading-tight">{community.name}</h1>
-              <p className="text-xs text-muted-foreground font-medium">g/{community.slug}</p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-2 shrink-0 pt-6">
-              {isAdmin && (
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="p-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                  title="Group settings"
-                >
-                  <Settings size={15} />
-                </button>
-              )}
-              {community.slug === 'general' ? (
-                <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-primary/10 border border-primary/20 text-primary flex items-center gap-1.5">
-                  <Globe size={13} /> Default Campus Square
+            {/* Category / meta strip */}
+            {community.category && (
+              <div className="mt-3 pt-3 border-t border-border/60 flex items-center gap-2">
+                <span className="text-[11px] font-semibold bg-secondary border border-border text-muted-foreground px-2.5 py-0.5 rounded-full capitalize">
+                  {community.category}
                 </span>
-              ) : (
-                <button
-                  onClick={toggleMembership}
-                  disabled={isJoining}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors cursor-pointer ${
-                    isMember
-                      ? 'border-border text-foreground hover:bg-secondary hover:text-destructive hover:border-destructive/50'
-                      : 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90'
-                  }`}
-                >
-                  {isMember ? 'Joined ✓' : 'Join'}
-                </button>
-              )}
-            </div>
+                {community.userRole === 'OWNER' && (
+                  <span className="text-[11px] font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-400 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <Crown size={11} /> Owner
+                  </span>
+                )}
+                {community.userRole === 'MOD' && (
+                  <span className="text-[11px] font-semibold bg-primary/10 border border-primary/30 text-primary px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <Shield size={11} /> Moderator
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Category / meta strip */}
-          {community.category && (
-            <div className="px-4 pb-3 flex items-center gap-2">
-              <span className="text-xs bg-secondary border border-border text-muted-foreground px-2 py-0.5 rounded-full capitalize">
-                {community.category}
-              </span>
-              {community.userRole === 'OWNER' && (
-                <span className="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Crown size={10} /> Owner
-                </span>
-              )}
-              {community.userRole === 'MOD' && (
-                <span className="text-xs bg-primary/10 border border-primary/30 text-primary px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Shield size={10} /> Moderator
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Tab bar + Sort */}
         <div className="flex items-center justify-between">
-          <div className="flex bg-card border border-border rounded-md overflow-hidden">
+          <div className="flex bg-card border border-border rounded-lg overflow-hidden">
             {((community.slug === 'general' ? ['POSTS'] : ['POSTS', 'MEMBERS']) as Tab[]).map((tab) => (
               <button
                 key={tab}
@@ -243,7 +251,7 @@ export function GroupPage() {
           </div>
 
           {activeTab === 'POSTS' && (
-            <div className="flex items-center gap-1 bg-card border border-border rounded-md p-0.5">
+            <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-0.5">
               <SortAsc size={13} className="text-muted-foreground ml-1.5" />
               {(['hot', 'new', 'top'] as SortOption[]).map((s) => (
                 <button
@@ -267,7 +275,7 @@ export function GroupPage() {
               <PostComposer communityId={community.id} />
             )}
             {!isMember && isAuthenticated && (
-              <div className="bg-card border border-border rounded-md px-4 py-3 text-sm text-muted-foreground flex items-center justify-between">
+              <div className="bg-card border border-border rounded-xl px-4 py-3 text-sm text-muted-foreground flex items-center justify-between">
                 <span>Join this group to post and comment</span>
                 <button onClick={toggleMembership} className="text-xs font-semibold text-primary hover:underline cursor-pointer">
                   Join now →
@@ -277,11 +285,11 @@ export function GroupPage() {
 
             {isPostsLoading
               ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="bg-card border border-border rounded-md h-28 animate-pulse" />
+                  <div key={i} className="bg-card border border-border rounded-xl h-28 animate-pulse" />
                 ))
               : posts.length === 0
               ? (
-                <div className="bg-card border border-border rounded-md py-16 flex flex-col items-center gap-2 text-muted-foreground">
+                <div className="bg-card border border-border rounded-xl py-16 flex flex-col items-center gap-2 text-muted-foreground">
                   <p className="text-sm font-medium">No posts yet</p>
                   <p className="text-xs">Be the first to share something in {community.name}!</p>
                 </div>
@@ -293,7 +301,7 @@ export function GroupPage() {
               <button
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                className="w-full py-2.5 bg-card border border-border text-sm font-medium text-foreground rounded-md hover:bg-secondary transition-colors disabled:opacity-50 cursor-pointer"
+                className="w-full py-2.5 bg-card border border-border text-sm font-medium text-foreground rounded-xl hover:bg-secondary transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {isFetchingNextPage ? 'Loading...' : 'Load more posts'}
               </button>
@@ -303,7 +311,7 @@ export function GroupPage() {
 
         {/* Members tab */}
         {activeTab === 'MEMBERS' && (
-          <div className="bg-card border border-border rounded-md overflow-hidden">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             {isMembersLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0 animate-pulse">
@@ -377,35 +385,35 @@ export function GroupPage() {
       {/* ─── SIDEBAR ─────────────────────────────────────── */}
       <aside className="hidden lg:block w-72 flex-shrink-0 sticky top-16 self-start space-y-3">
         {/* About */}
-        <div className="bg-card border border-border rounded-md overflow-hidden">
-          <div className="px-3 py-2.5 border-b border-border font-semibold text-sm">About g/{community.slug}</div>
-          <div className="p-3 space-y-3">
+        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+          <div className="px-3.5 py-3 border-b border-border font-bold text-sm text-foreground">About g/{community.slug}</div>
+          <div className="p-3.5 space-y-3.5">
             {community.description && (
-              <p className="text-sm text-muted-foreground leading-relaxed">{community.description}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{community.description}</p>
             )}
 
             <div className="flex gap-4 text-center">
               {community.slug === 'general' ? (
                 <div className="flex-1">
-                  <div className="text-base font-bold text-foreground">Campus-wide</div>
-                  <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                  <div className="text-sm font-bold text-foreground">Campus-wide</div>
+                  <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1">
                     <Globe size={11} /> Open to every student
                   </div>
                 </div>
               ) : (
                 <div className="flex-1">
-                  <div className="text-base font-bold text-foreground">{community.memberCount.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                  <div className="text-sm font-bold text-foreground">{community.memberCount.toLocaleString()}</div>
+                  <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1">
                     <Users size={11} /> Members
                   </div>
                 </div>
               )}
               <div className="w-px bg-border" />
               <div className="flex-1">
-                <div className="text-base font-bold text-foreground">
+                <div className="text-sm font-bold text-foreground">
                   {new Date(community.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
                 </div>
-                <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1">
                   <Calendar size={11} /> Created
                 </div>
               </div>
@@ -414,13 +422,13 @@ export function GroupPage() {
             <div className="w-full h-px bg-border" />
 
             {community.slug === 'general' ? (
-              <div className="w-full py-2 rounded-full text-center text-sm font-semibold border border-primary/20 bg-primary/10 text-primary">
+              <div className="w-full py-2 rounded-full text-center text-xs font-bold border border-primary/20 bg-primary/10 text-primary">
                 Default campus feed
               </div>
             ) : isAuthenticated ? (
               <button
                 onClick={toggleMembership}
-                className={`w-full py-2 rounded-full text-sm font-semibold border transition-colors cursor-pointer ${
+                className={`w-full py-2 rounded-full text-xs font-bold border transition-all cursor-pointer shadow-sm ${
                   isMember
                     ? 'border-border text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40'
                     : 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90'
@@ -436,11 +444,11 @@ export function GroupPage() {
 
         {/* Rules */}
         {community.rules && community.rules.length > 0 && (
-          <div className="bg-card border border-border rounded-md overflow-hidden">
-            <div className="px-3 py-2.5 border-b border-border font-semibold text-sm">Group Rules</div>
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className="px-3.5 py-3 border-b border-border font-bold text-sm text-foreground">Group Rules</div>
             <div className="divide-y divide-border">
               {community.rules.map((rule, idx) => (
-                <div key={rule.id} className="px-3 py-2.5">
+                <div key={rule.id} className="px-3.5 py-2.5">
                   <p className="text-xs font-semibold text-foreground">{idx + 1}. {rule.title}</p>
                   {rule.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{rule.description}</p>
@@ -453,11 +461,11 @@ export function GroupPage() {
 
         {/* Admin Panel shortcut */}
         {isAdmin && (
-          <div className="bg-card border border-border rounded-md p-3">
+          <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Admin Tools</p>
             <button
               onClick={() => setShowSettings(true)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-secondary hover:bg-secondary/80 text-sm font-medium text-foreground transition-colors cursor-pointer"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-xs font-bold text-foreground transition-colors cursor-pointer"
             >
               <Settings size={14} />
               Group Settings

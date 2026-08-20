@@ -183,18 +183,9 @@ export function LoginPage() {
       </form>
 
       <p className="text-center text-muted-foreground text-sm">
-        Don't have an account?{' '}
+        Don&apos;t have an account?{' '}
         <Link to="/register" className="text-primary hover:underline font-medium">Create one</Link>
       </p>
-
-      {/* Demo credentials — must match apps/api/prisma/seed.ts exactly */}
-      {import.meta.env.DEV && (
-        <div className="p-4 rounded-xl bg-secondary border border-border">
-          <p className="text-xs text-muted-foreground mb-2 font-medium">Demo Credentials</p>
-          <p className="text-xs text-muted-foreground">Email: <span className="text-foreground">admin@lastbench.app</span></p>
-          <p className="text-xs text-muted-foreground">Password: <span className="text-foreground">Admin123</span></p>
-        </div>
-      )}
     </div>
   );
 }

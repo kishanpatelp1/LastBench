@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Users, Search, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { api } from '../lib/api-client';
 import { useAuthStore } from '../stores/auth-store';
-import { Community } from '../types';
 import { toast } from 'sonner';
 
 function CreateGroupModal({ onClose }: { onClose: () => void }) {
@@ -158,7 +157,7 @@ export function GroupsPage() {
   const [page, setPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const ITEMS_PER_PAGE = 8;
-  const { user, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -181,11 +180,6 @@ export function GroupsPage() {
     const start = (page - 1) * ITEMS_PER_PAGE;
     return allCommunities.slice(start, start + ITEMS_PER_PAGE);
   }, [allCommunities, page]);
-
-  const isMember = (_communityId: string) => {
-    // Membership status is fetched per-community from the API (community.isMember)
-    return false;
-  };
 
   const handleCreateGroupClick = () => {
     if (!isAuthenticated) {
@@ -224,19 +218,19 @@ export function GroupsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search campus groups by name or handle..."
-            className="w-full pl-9 pr-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
 
         {/* Group Cards Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-card border border-border rounded-md p-4 space-y-2 animate-pulse skeleton h-28" />
+              <div key={i} className="bg-card border border-border rounded-xl p-4 space-y-2 animate-pulse skeleton h-44" />
             ))}
           </div>
         ) : communities.length === 0 ? (
-          <div className="bg-card border border-border rounded-md p-8 text-center text-muted-foreground text-sm space-y-3">
+          <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground text-sm space-y-3">
             <Users size={36} className="mx-auto text-muted-foreground/40" />
             <p>No groups found matching &quot;{search}&quot;</p>
             <button
@@ -247,44 +241,45 @@ export function GroupsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {communities.map((c) => (
-              <div key={c.id} className="bg-card border border-border rounded-md overflow-hidden hover:border-primary/40 transition-colors flex flex-col">
-                {/* Mini banner */}
-                <div className="h-24 relative bg-secondary/60">
+              <div key={c.id} className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/50 hover:shadow-md transition-all flex flex-col group">
+                {/* Banner Header */}
+                <div className="h-28 w-full relative bg-secondary/80 overflow-hidden">
                   {c.bannerUrl ? (
                     <img
                       src={c.bannerUrl}
                       alt={`${c.name} banner`}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
-                    <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--primary)/0.2),hsl(var(--primary)/0.04))]" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/25 via-purple-600/15 to-blue-500/10" />
                   )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-transparent to-black/20 pointer-events-none" />
                 </div>
 
-                <div className="p-3 flex flex-col gap-2 flex-1 -mt-5 relative">
+                <div className="p-3.5 flex flex-col gap-2.5 flex-1 relative -mt-7">
                   <div className="flex items-start justify-between gap-2">
-                    <Link to={`/g/${c.slug}`} className="flex items-center gap-2 group">
-                      {/* Group avatar */}
-                      <div className="w-9 h-9 rounded-lg border-2 border-card overflow-hidden bg-primary shrink-0 shadow-sm">
+                    <Link to={`/g/${c.slug}`} className="flex items-center gap-2.5 group/link min-w-0">
+                      {/* Group avatar with ring */}
+                      <div className="w-12 h-12 rounded-xl ring-2 ring-card overflow-hidden bg-primary shrink-0 shadow-md flex items-center justify-center relative z-10">
                         {c.avatarUrl ? (
                           <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-primary-foreground font-bold text-sm">
+                          <div className="w-full h-full flex items-center justify-center text-primary-foreground font-extrabold text-base">
                             {c.name[0]}
                           </div>
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-sm text-foreground group-hover:text-primary transition-colors truncate">{c.name}</div>
-                        <div className="text-xs text-muted-foreground">g/{c.slug}</div>
+                      <div className="min-w-0 pt-3">
+                        <div className="font-bold text-sm text-foreground group-hover/link:text-primary transition-colors truncate">{c.name}</div>
+                        <div className="text-[11px] font-semibold text-muted-foreground">g/{c.slug}</div>
                       </div>
                     </Link>
                     {c.slug === 'general' ? (
-                      <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded shrink-0 mt-1">Default Feed</span>
+                      <span className="text-[10px] bg-primary/10 border border-primary/20 text-primary font-bold px-2 py-0.5 rounded-full shrink-0 mt-3 shadow-xs">Default Feed</span>
                     ) : c.isMember ? (
-                      <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded shrink-0 mt-1">Joined</span>
+                      <span className="text-[10px] bg-primary/10 border border-primary/20 text-primary font-bold px-2 py-0.5 rounded-full shrink-0 mt-3 shadow-xs">Joined</span>
                     ) : null}
                   </div>
 
@@ -292,12 +287,12 @@ export function GroupsPage() {
                     {c.description || 'Campus group for discussions, updates, and events.'}
                   </p>
 
-                  <div className="mt-auto pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Users size={11} /> {c.slug === 'general' ? 'Campus-wide' : `${(c.memberCount ?? 0).toLocaleString()} members`}
+                  <div className="mt-auto pt-2.5 border-t border-border/70 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Users size={12} className="text-primary/70" /> {c.slug === 'general' ? 'Campus-wide' : `${(c.memberCount ?? 0).toLocaleString()} members`}
                     </span>
-                    <Link to={`/g/${c.slug}`} className="text-primary font-semibold hover:underline">
-                      View →
+                    <Link to={`/g/${c.slug}`} className="text-xs text-primary font-bold hover:underline flex items-center gap-0.5">
+                      View Group →
                     </Link>
                   </div>
                 </div>
@@ -306,10 +301,9 @@ export function GroupsPage() {
           </div>
         )}
 
-
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between bg-card border border-border rounded-md px-4 py-2 text-xs">
+          <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 text-xs shadow-xs">
             <span className="text-muted-foreground">
               Page {page} of {totalPages} ({allCommunities.length} groups)
             </span>
@@ -317,14 +311,14 @@ export function GroupsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1 rounded border border-border disabled:opacity-40 hover:bg-secondary transition-colors cursor-pointer"
+                className="p-1.5 rounded border border-border disabled:opacity-40 hover:bg-secondary transition-colors cursor-pointer"
               >
                 <ChevronLeft size={16} />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-1 rounded border border-border disabled:opacity-40 hover:bg-secondary transition-colors cursor-pointer"
+                className="p-1.5 rounded border border-border disabled:opacity-40 hover:bg-secondary transition-colors cursor-pointer"
               >
                 <ChevronRight size={16} />
               </button>
@@ -335,14 +329,14 @@ export function GroupsPage() {
 
       {/* RIGHT SIDEBAR */}
       <aside className="hidden lg:block w-80 shrink-0 sticky top-16 self-start space-y-3">
-        <div className="bg-card border border-border rounded-md p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-foreground">Groups Hub</h2>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-2.5 shadow-sm">
+          <h2 className="text-sm font-bold text-foreground">Groups Hub</h2>
           <p className="text-xs text-muted-foreground leading-relaxed">
             Join groups matching your department, hobbies, or sports to customize your home feed. Can&apos;t find your club? Create your own group!
           </p>
           <button
             onClick={handleCreateGroupClick}
-            className="w-full mt-2 py-2 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
+            className="w-full mt-2 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors cursor-pointer shadow-sm"
           >
             + Create a New Group
           </button>

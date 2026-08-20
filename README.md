@@ -1,208 +1,225 @@
-# LastBench
+<div align="center">
 
-**A campus community platform for the conversations students usually have somewhere else.**
+# 🎓 LastBench
 
-LastBench gives college communities a focused place to share updates, ask questions, run polls, discover groups, and participate anonymously when the topic calls for it. It is built as a production-minded TypeScript monorepo with a React client, an Express API, PostgreSQL, Redis, realtime notifications, background moderation, and CI.
+**The modern, college-first community platform for campus discussions, anonymous confessions, academic resources, and campus life.**
 
-## Why LastBench
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React 19](https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Express 5](https://img.shields.io/badge/Express-5.0-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Turborepo](https://img.shields.io/badge/Turborepo-2.9-EF4444?logo=turborepo&logoColor=white)](https://turbo.build/)
+[![Vitest](https://img.shields.io/badge/Vitest-4.1-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Campus conversation tends to fragment across informal chats, anonymous forums, and broad social networks. LastBench brings that activity into college-scoped communities while preserving the low-friction, pseudonymous experience students expect.
+[Live Demo](https://last-bench-web.vercel.app) • [Architecture](#-architecture) • [Features](#-key-features) • [Getting Started](#-getting-started) • [API Overview](#-api-specification) • [Engineering Highlights](#-engineering-highlights)
 
-- **Campus-first spaces** for placement news, academics, memes, events, and everything in between.
-- **Choice of identity** with public or anonymous posts.
-- **Thoughtful participation** through votes, nested comments, polls, tags, reports, and notifications.
-- **Operator tooling** with report handling and an admin moderation queue.
-- **Built to grow** with database-backed data, Redis rate limiting, Socket.IO, and BullMQ workers.
+</div>
 
-## Product Surface
+---
 
-| Area | What it supports |
-| --- | --- |
-| Feed | Cursor-paginated feed, hot/new/top ordering, optimistic voting, and infinite scrolling |
-| Communities | College-aware groups such as `g/placements` and `g/memes`, membership, discovery, and search |
-| Discussion | Rich posts, image uploads, tags, polls, nested replies, and post reporting |
-| Identity | Email/password sessions, optional Google OAuth, onboarding, profiles, and anonymous posting |
-| Realtime | In-app notifications delivered through Socket.IO |
-| Moderation | Redis-backed rate limits, report workflow, queue-backed post checks, and admin review tools |
+## 🌟 Overview
 
-## Architecture
+Campus conversations often fragment across unstructured WhatsApp groups, ephemeral Discord servers, and informal gossip apps. **LastBench** brings that energy into a dedicated, college-aware platform combining the best of **Reddit**, **Twitter**, and campus micro-communities.
+
+Students can share placement experiences, debate campus events, ask academic doubts, vote on live polls, upload high-res images and campus videos, or post completely anonymously with zero trace.
+
+---
+
+## 🚀 Key Features
+
+### 🏛️ Campus-First Communities (`g/slug`)
+- **Subreddit-Style Groups**: Discover department channels, hobby hubs, and clubs (e.g. `g/placements`, `g/memes`, `g/sports`, `g/academic`).
+- **Community Customization**: Rich full-bleed cover banners, custom avatars, group rules, and member roles (Owner, Moderator, Student).
+- **Default Campus Square**: Campus-wide general feed ensuring immediate engagement for newly joined freshmen.
+
+### 🎭 Flexible Identity & Anonymous Posting
+- **Dual Identity Modes**: Toggle between posting as your public handle (`u/username`) or posting **Anonymously** with a single click.
+- **Zero-Trace Privacy**: Anonymous posts strip all author metadata at the API boundary, guaranteeing unbiased sharing and open confessions.
+
+### 🎬 Interactive Feed & Smart Media Engine
+- **Reddit/Insta-Style Auto-Play Videos**: In-feed videos auto-play when scrolled into the viewport and auto-pause when scrolled away to preserve system resources and bandwidth.
+- **Floating Controls & Scrubbing**: Instant mute/unmute audio pill, smooth custom seek bar, animated play/pause overlay, and full-screen lightbox.
+- **Rich Media & Polls**: Multi-image grids (up to 4 images per post), live interactive polls with real-time percentage bars, and external resource link previews.
+
+### 💬 Deep Discussion & Community Moderation
+- **Multi-Level Nested Comments**: Recursive threaded replies with optimistic upvoting/downvoting and zero cursor-jump typing stability.
+- **Content Moderation Pipeline**: BullMQ background workers for automated content validation and keyword checks.
+- **Role-Based Access Control (RBAC)**: Comprehensive report management, multi-target validation, and privilege escalation guards preventing moderator abuse.
+
+### ⚡ Real-Time Notifications
+- **Socket.IO Engine**: Instant live notifications when someone upvotes your post, replies to your comment, or mentions your handle.
+
+---
+
+## 🏗️ Architecture
+
+LastBench is structured as a production-grade TypeScript monorepo orchestrated with **Turborepo** and **pnpm workspaces**. Client and server contracts share unified Zod validation schemas and TypeScript types.
 
 ```text
-                         React 19 + Vite
-                         Tailwind + Radix UI
-                                  |
-                    HTTP API + Socket.IO client
-                                  |
-                        Express 5 API service
-          auth | posts | comments | groups | search | admin
-                    |                 |                 \
-               PostgreSQL 16       Redis 7          BullMQ workers
-                 Prisma ORM      cache/rate limits    moderation jobs
+                               ┌─────────────────────────┐
+                               │   React 19 Single Page  │
+                               │   (Vite + Tailwind CSS) │
+                               └────────────┬────────────┘
+                                            │ HTTP / WebSocket
+                               ┌────────────▼────────────┐
+                               │     Express 5.0 API     │
+                               │   Socket.IO Gateway     │
+                               └──────┬──────┬──────┬────┘
+                                      │      │      │
+                   ┌──────────────────┘      │      └─────────────────┐
+                   ▼                         ▼                        ▼
+        ┌──────────────────┐      ┌──────────────────┐     ┌──────────────────┐
+        │  PostgreSQL 16   │      │     Redis 7      │     │  BullMQ Workers  │
+        │   (Prisma ORM)   │      │  (Rate Limits &  │     │ (Content Checks  │
+        │                  │      │  Sliding Window) │     │ & Hourly Purges) │
+        └──────────────────┘      └──────────────────┘     └──────────────────┘
 ```
 
-This is a pnpm/Turborepo workspace. Shared Zod schemas and TypeScript types keep client and server contracts aligned.
+### Monorepo Structure
 
 ```text
-apps/
-  web/                 React single-page application
-  api/                 Express API, Prisma schema, Socket.IO, workers
-packages/
-  shared/              Shared Zod schemas, types, and constants
-  tsconfig/            Shared TypeScript configuration
-.github/workflows/     CI for type checks, tests, and production builds
+├── apps/
+│   ├── web/               # React 19 frontend application (Vite, TanStack Query, Tailwind)
+│   └── api/               # Express 5 backend API (Prisma, Socket.IO, BullMQ, Passport)
+├── packages/
+│   ├── shared/            # Shared Zod validation schemas, domain types, and constants
+│   └── tsconfig/          # Standardized TypeScript compiler configurations
+├── docker/                # Local development Docker Compose services
+└── .github/workflows/     # Automated CI/CD pipeline (Vitest, Typecheck, Prisma, Builds)
 ```
 
-## Stack
+---
 
-| Concern | Technology |
-| --- | --- |
-| Client | React 19, Vite, TypeScript, Tailwind CSS, Radix UI |
-| Data fetching and state | TanStack Query, Zustand, React Hook Form, Zod |
-| API | Express 5, TypeScript, Socket.IO |
-| Persistence | PostgreSQL 16, Prisma ORM |
-| Performance and jobs | Redis 7, BullMQ |
-| Quality | Vitest, TypeScript, GitHub Actions |
-| Local infrastructure | Docker Compose |
+## 🛠️ Tech Stack
 
-## Quick Start
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Vite, TypeScript, Tailwind CSS, Lucide Icons, Framer Motion |
+| **State & Data Fetching** | TanStack Query (React Query v5), Zustand |
+| **Backend API** | Express 5, Node.js (v22+), Socket.IO, Passport.js |
+| **Database & ORM** | PostgreSQL 16, Prisma ORM 6 |
+| **Caching & Queues** | Redis 7, BullMQ (background workers) |
+| **Cloud Storage** | Supabase Storage CDN (with resilient local disk fallback) |
+| **Validation & Types** | Zod (shared full-stack schemas), TypeScript 5.9 |
+| **Testing & CI/CD** | Vitest 4.1, GitHub Actions CI, Docker Compose |
+
+---
+
+## 🏁 Getting Started
 
 ### Prerequisites
+- **Node.js**: `v22.0.0` or higher
+- **pnpm**: `v9.0.0` or higher (`corepack enable` recommended)
+- **Docker Desktop**: For running local PostgreSQL and Redis instances
 
-- Node.js 22 or newer
-- pnpm 9 (Corepack is recommended)
-- Docker Desktop for PostgreSQL and Redis
-
-### Run locally
+### 1. Clone & Install Dependencies
 
 ```bash
-git clone <your-repository-url> lastbench
-cd lastbench
+git clone https://github.com/kishanppatel-dev/LastBench.git
+cd LastBench
 
 corepack enable
 pnpm install
-
-# Start PostgreSQL on :5434 and Redis on :6380.
-docker compose up -d
-
-# Create local API configuration.
-Copy-Item apps/api/.env.example apps/api/.env
-
-# Generate the Prisma client, apply migrations, and load local demo data.
-pnpm db:generate
-pnpm db:migrate --name init
-pnpm db:seed
-
-# Start the web app and API together.
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The API readiness endpoint is [http://localhost:3001/health/ready](http://localhost:3001/health/ready).
+### 2. Launch Local Infrastructure
 
-For macOS/Linux, replace the PowerShell `Copy-Item` command with:
+Start PostgreSQL (port `5434`) and Redis (port `6380`):
 
 ```bash
+docker compose up -d
+```
+
+### 3. Setup Environment Variables
+
+Copy the environment template:
+
+```bash
+# Windows (PowerShell)
+Copy-Item apps/api/.env.example apps/api/.env
+
+# macOS / Linux
 cp apps/api/.env.example apps/api/.env
 ```
 
-### Demo accounts
-
-The seed command creates these accounts for local evaluation:
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Admin | `admin@lastbench.app` | `Admin123` |
-| Student | `student@iitm.ac.in` | `Admin123` |
-| Student | `student@vit.ac.in` | `Admin123` |
-
-These credentials are strictly for local development. The demo seed deletes existing application data before rebuilding the local dataset and is programmatically blocked when `NODE_ENV=production`. Never use it against a live database.
-
-## Everyday Commands
-
-| Command | Purpose |
-| --- | --- |
-| `pnpm dev` | Start all workspace applications in development mode |
-| `pnpm build` | Create production builds |
-| `pnpm lint` | Run TypeScript checks for the web workspace |
-| `pnpm test` | Run the API test suite through Turborepo |
-| `pnpm db:generate` | Generate the Prisma client |
-| `pnpm db:migrate --name <name>` | Create and apply a development migration |
-| `pnpm db:seed` | Reset a local development database with demo data; blocked in production |
-| `pnpm db:studio` | Open Prisma Studio |
-| `docker compose down` | Stop local PostgreSQL and Redis without removing data |
-
-## Configuration
-
-Copy [`apps/api/.env.example`](apps/api/.env.example) to `apps/api/.env` before starting the API. The defaults are ready for the local Docker Compose services.
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | Yes | PostgreSQL connection URL |
-| `REDIS_URL` | Yes | Redis connection URL for caching, queues, and rate limits |
-| `BETTER_AUTH_SECRET` | Yes | Long, random session signing secret |
-| `BETTER_AUTH_URL` | Yes | Public API URL used in authentication flows |
-| `CORS_ORIGIN` | Yes | Frontend origin allowed to call the API |
-| `FRONTEND_URL` | Yes | Public frontend URL used for redirects |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | No | Enable Google OAuth |
-| `SMTP_*` or `RESEND_*` | No | Enable production email delivery |
-| `MAX_FILE_SIZE` | No | Upload limit in bytes; defaults to 50 MB |
-
-Never commit a populated `.env` file. For production, use your platform's encrypted environment-variable store and set `NODE_ENV=production`.
-
-## Authentication and OAuth
-
-LastBench supports email/password sessions and optional Google OAuth. When enabling Google OAuth, configure the callback through the frontend origin so the browser receives a first-party session cookie:
-
-```text
-http://localhost:3000/api/auth/google/callback
-https://<your-frontend-domain>/api/auth/google/callback
-```
-
-Add the matching callback URL to Google Cloud Console and set `GOOGLE_CALLBACK_URL` and `FRONTEND_URL` for the target environment. See [`apps/api/.env.example`](apps/api/.env.example) for the complete configuration reference.
-
-## API Overview
-
-The API is namespaced under `/api` and returns JSON. Public read endpoints let visitors explore the platform before signing in; write operations and personal data require an authenticated session.
-
-| Domain | Example endpoints |
-| --- | --- |
-| Auth | `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/me` |
-| Posts | `GET /api/posts`, `POST /api/posts`, `POST /api/posts/:id/vote` |
-| Comments | `GET /api/comments`, `POST /api/comments` |
-| Communities | `GET /api/communities`, `POST /api/communities/:id/join` |
-| Discovery | `GET /api/search` |
-| Notifications | `GET /api/notifications` |
-| Moderation | `POST /api/admin/reports` |
-| Uploads | `POST /api/upload` |
-
-The readiness check at `GET /health/ready` verifies the API's database and Redis dependencies.
-
-## Quality Bar
-
-Every pull request and push to `main` runs GitHub Actions that:
-
-1. installs dependencies from the lockfile;
-2. runs TypeScript checks and linting;
-3. applies Prisma migrations to ephemeral PostgreSQL and Redis services;
-4. runs the test suite; and
-5. creates production builds.
-
-Before opening a pull request, run:
+### 4. Database Setup & Migrations
 
 ```bash
-pnpm turbo type-check
-pnpm lint
-pnpm test
-pnpm build
+pnpm db:generate
+pnpm db:migrate --name init
+pnpm db:seed
 ```
 
-## Deployment Notes
+### 5. Start Development Servers
 
-The included [`Dockerfile`](Dockerfile) produces a production API image. The web app is a Vite build and can be deployed to a static hosting provider with SPA fallback configured. Provision managed PostgreSQL and Redis, run Prisma migrations during deployment, and set the production values described in the Configuration section.
+```bash
+pnpm dev
+```
 
-For user-generated uploads, configure the included Supabase Storage integration or another durable object store rather than relying on a container-local directory. Configure explicit frontend origins, secure secrets, and a strong `BETTER_AUTH_SECRET` before accepting traffic.
+- **Frontend Client**: [http://localhost:3000](http://localhost:3000)
+- **Backend API**: [http://localhost:3001](http://localhost:3001)
+- **API Readiness Check**: [http://localhost:3001/health/ready](http://localhost:3001/health/ready)
 
-For production data handling, including the server-only Supabase RLS policy and backup/restore commands, see [`docs/data-operations.md`](docs/data-operations.md). Do not seed or reset a production database.
+---
 
-## License
+## 📜 Everyday Scripts
 
-Distributed under the [MIT License](LICENSE).
+| Command | Description |
+| :--- | :--- |
+| `pnpm dev` | Starts all monorepo workspaces concurrently in hot-reload dev mode |
+| `pnpm build` | Compiles optimized production builds across all applications |
+| `pnpm turbo type-check` | Executes strict TypeScript type validation across the entire repository |
+| `pnpm test` | Runs the full Vitest automated test suite |
+| `pnpm db:generate` | Regenerates Prisma Client types from `schema.prisma` |
+| `pnpm db:migrate` | Applies development database migrations |
+| `pnpm db:studio` | Launches visual Prisma Studio database manager |
+| `docker compose down` | Safely stops background PostgreSQL and Redis containers |
+
+---
+
+## 🔐 Engineering & Security Highlights
+
+### 🛡️ 1. Zero-Trust Authentication & OAuth CSRF Defense
+- Session tokens are **SHA-256 hashed** prior to database storage, ensuring database leaks cannot compromise active user sessions.
+- Google OAuth implementation uses cryptographically random `state` tokens stored in short-lived (10m TTL), `httpOnly`, `SameSite=None`, `secure` cookies, preventing CSRF replay attacks during authentication dances.
+
+### ⏱️ 2. Resilient Sliding-Window Rate Limiting
+- Employs Redis for high-throughput distributed rate limiting with isolated thresholds for authentication (10 req/15m) and general API endpoints (120 req/m).
+- **In-Memory Sliding Window Fallback**: If Redis experiences an upstream outage or transient disconnection, the API automatically falls back to an in-memory sliding window counter with periodic 5-minute memory eviction, ensuring auth endpoints never fail-open to brute-force attacks.
+
+### ⚡ 3. Graceful Worker Teardown
+- Background BullMQ workers and job queues are tracked via an internal registry.
+- On `SIGTERM` / `SIGINT` termination signals, the server drains and gracefully shuts down all active workers and queue handles before closing Prisma and Redis connections.
+
+### 🧼 4. 100% Strict Type Safety
+- Zero `as any`, zero `as never`, and zero `as unknown as` assertions across both frontend and backend application code.
+- Shared Zod schemas strictly validate and infer input/output types across HTTP boundaries.
+
+---
+
+## 📡 API Specification
+
+| Domain | Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Auth** | `POST` | `/api/auth/register` | Public | Create student account |
+| **Auth** | `POST` | `/api/auth/login` | Public | Authenticate session |
+| **Auth** | `GET` | `/api/auth/me` | Session | Retrieve current authenticated user |
+| **Posts** | `GET` | `/api/posts` | Public | Paginated feed (sort: `hot`, `new`, `top`) |
+| **Posts** | `POST` | `/api/posts` | Session | Create post (text, image, video, poll, link) |
+| **Posts** | `POST` | `/api/posts/:id/vote` | Session | Upvote or downvote post |
+| **Comments**| `GET` | `/api/comments` | Public | Fetch threaded comments for a post |
+| **Comments**| `POST` | `/api/comments` | Session | Post comment or nested reply |
+| **Groups** | `GET` | `/api/communities` | Public | Explore and search campus communities |
+| **Groups** | `POST` | `/api/communities` | Session | Create a new student community |
+| **Uploads** | `POST` | `/api/upload` | Verified | Upload media to CDN (up to 50MB) |
+| **Admin** | `POST` | `/api/admin/reports` | Session | Submit content report for moderation |
+| **Admin** | `GET` | `/api/admin/reports` | Moderator | Review reported content queue |
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

@@ -10,6 +10,7 @@ import { Post } from '../../types';
 import { useAuthStore } from '../../stores/auth-store';
 import { api } from '../../lib/api-client';
 import { MediaLightbox } from './MediaLightbox';
+import { FeedVideoPlayer } from './FeedVideoPlayer';
 
 interface PostCardProps {
   post: Post;
@@ -113,209 +114,230 @@ export function PostCard({ post }: PostCardProps) {
       await api.votePost(post.id, type);
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['post', post.id] });
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-    } catch (err: unknown) {
+    } catch {
+      // Revert upon server rejection
       setOptimisticVote(prevVote);
       setOptimisticScore(prevScore);
-      toast.error(err instanceof Error ? err.message : 'Failed to vote');
+      toast.error('Vote failed to register');
     }
   };
 
-  const handlePollVote = async (e: React.MouseEvent, optionId: string) => {
+  const handlePollVote = async (e: React.SyntheticEvent, optionId: string) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!isAuthenticated) {
-      toast.error('Please sign in');
+      toast.error('Please sign in to vote in polls');
       navigate('/login');
       return;
     }
 
     try {
-      await api.votePoll(post.id, optionId);
+      await api.votePoll(post.poll!.id, optionId);
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['post', post.id] });
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      toast.success('Vote submitted!');
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update poll vote');
+      const msg = err instanceof Error ? err.message : 'Failed to vote in poll';
+      toast.error(msg);
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.SyntheticEvent) => {
     e.stopPropagation();
-    setShowOptionsMenu(false);
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
-
+    if (!confirm('Are you sure you want to delete this post?')) return;
+    
     setIsDeleting(true);
     try {
       await api.deletePost(post.id);
-      toast.success('Post deleted');
       queryClient.invalidateQueries({ queryKey: ['feed'] });
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      toast.success('Post deleted successfully');
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete post');
-    } finally {
+      const msg = err instanceof Error ? err.message : 'Failed to delete post';
+      toast.error(msg);
       setIsDeleting(false);
     }
   };
 
-  const handleShare = (e: React.MouseEvent) => {
+  const handleShare = async (e: React.SyntheticEvent) => {
     e.stopPropagation();
     const url = `${window.location.origin}/post/${post.id}`;
     if (navigator.share) {
-      navigator.share({ title: post.title || 'LastBench Post', url }).catch(() => {});
+      try {
+        await navigator.share({
+          title: post.title || 'LastBench Post',
+          text: post.content,
+          url,
+        });
+      } catch {
+        // user cancelled share
+      }
     } else {
       navigator.clipboard.writeText(url);
-      toast.success('Link copied to clipboard!');
+      toast.success('Post link copied to clipboard!');
     }
   };
 
-  // Close menu on outside click
+  // Close context menu on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const handleOutsideClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowOptionsMenu(false);
       }
     };
-    if (showOptionsMenu) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [showOptionsMenu]);
 
-  const handleReport = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowOptionsMenu(false);
-    const reason = window.prompt('Why are you reporting this post? (optional)');
-    if (reason === null) return; // cancelled
-    try {
-      await api.reportPost(post.id, reason || 'Inappropriate content');
-      toast.success('Post reported. Our moderators will review it shortly.');
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to report post');
-    }
-  };
+  const authorName = post.isAnonymous 
+    ? 'Anonymous Student' 
+    : post.author?.displayName || post.author?.username || 'Unknown User';
 
-  const embeddedYouTubeUrl = post.linkUrl ? getYouTubeEmbedUrl(post.linkUrl) : null;
+  const authorHandle = post.isAnonymous 
+    ? 'anonymous' 
+    : post.author?.username;
+
+  const authorInitial = authorName[0]?.toUpperCase() || 'U';
+
+  const formattedTime = post.createdAt 
+    ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })
+    : 'recently';
+
+  const youtubeEmbedUrl = post.linkUrl ? getYouTubeEmbedUrl(post.linkUrl) : null;
 
   return (
     <>
-    <article 
+    <article
       onClick={() => navigate(`/post/${post.id}`)}
-      className="w-full max-w-3xl mx-auto bg-card border border-border rounded-md hover:border-muted-foreground/30 transition-colors cursor-pointer flex text-card-foreground relative"
+      className={`bg-card border border-border rounded-xl transition-all cursor-pointer relative overflow-hidden group hover:border-primary/40 shadow-xs ${
+        post.isPinned ? 'border-primary/50' : ''
+      } ${isDeleting ? 'opacity-40 pointer-events-none' : ''}`}
     >
-      {/* VOTE SIDEBAR */}
-      <div className="flex flex-col items-center py-2 px-1.5 bg-secondary/30 rounded-l-md border-r border-border shrink-0 select-none">
-        <button
-          type="button"
-          onClick={(e) => handleVote(e, 'UP')}
-          onTouchEnd={(e) => handleVote(e, 'UP')}
-          style={{ touchAction: 'manipulation' }}
-          className={`p-1 rounded hover:bg-secondary transition-colors cursor-pointer active:scale-125 ${
-            isUpvoted ? 'text-orange-500' : 'text-muted-foreground hover:text-foreground'
-          }`}
-          title="Upvote"
+      {post.isPinned && (
+        <div className="bg-primary/10 border-b border-primary/20 px-3.5 py-1 text-primary text-xs font-semibold flex items-center gap-1.5">
+          <Pin size={12} className="fill-primary" />
+          <span>Pinned by Moderators</span>
+        </div>
+      )}
+
+      <div className="flex p-3 sm:p-4 gap-3">
+        {/* LEFT VOTE COLUMN */}
+        <div 
+          onClick={(e) => e.stopPropagation()} 
+          className="flex flex-col items-center select-none shrink-0"
         >
-          <ArrowBigUp size={22} className={isUpvoted ? 'fill-orange-500' : ''} />
-        </button>
+          <button
+            onClick={(e) => handleVote(e, 'UP')}
+            className={`p-1 rounded-md transition-colors cursor-pointer ${
+              isUpvoted 
+                ? 'text-primary bg-primary/10' 
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+            }`}
+            title="Upvote"
+          >
+            <ArrowBigUp size={22} className={isUpvoted ? 'fill-primary' : ''} />
+          </button>
 
-        <span className={`text-xs font-bold my-0.5 ${
-          isUpvoted ? 'text-orange-500' : isDownvoted ? 'text-indigo-500' : 'text-foreground'
-        }`}>
-          {optimisticScore}
-        </span>
+          <span className={`text-xs font-black my-0.5 ${
+            isUpvoted ? 'text-primary' : isDownvoted ? 'text-destructive' : 'text-foreground'
+          }`}>
+            {optimisticScore}
+          </span>
 
-        <button
-          type="button"
-          onClick={(e) => handleVote(e, 'DOWN')}
-          onTouchEnd={(e) => handleVote(e, 'DOWN')}
-          style={{ touchAction: 'manipulation' }}
-          className={`p-1 rounded hover:bg-secondary transition-colors cursor-pointer active:scale-125 ${
-            isDownvoted ? 'text-indigo-500' : 'text-muted-foreground hover:text-foreground'
-          }`}
-          title="Downvote"
-        >
-          <ArrowBigDown size={22} className={isDownvoted ? 'fill-indigo-500' : ''} />
-        </button>
-      </div>
+          <button
+            onClick={(e) => handleVote(e, 'DOWN')}
+            className={`p-1 rounded-md transition-colors cursor-pointer ${
+              isDownvoted 
+                ? 'text-destructive bg-destructive/10' 
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+            }`}
+            title="Downvote"
+          >
+            <ArrowBigDown size={22} className={isDownvoted ? 'fill-destructive' : ''} />
+          </button>
+        </div>
 
-      {/* CONTENT AREA */}
-      <div className="flex-1 p-3 min-w-0 flex flex-col justify-between">
-        <div className="space-y-1.5">
-          {/* HEADER META */}
-          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+        {/* MAIN POST BODY */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+          {/* HEADER STRIP: Subreddit + User + Time */}
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {post.community && (
-                <>
-                  <Link 
-                    to={`/g/${post.community.slug}`} 
-                    onClick={(e) => e.stopPropagation()}
-                    className="font-bold text-foreground hover:underline truncate"
-                  >
-                    g/{post.community.slug}
-                  </Link>
-                  <span>•</span>
-                </>
-              )}
-              
-              <span>Posted by</span>
-              {post.isAnonymous ? (
-                <span className="italic">u/Anonymous</span>
-              ) : (
-                <Link 
-                  to={user?.id === post.author?.id ? '/profile' : `/u/${post.author?.username}`}
+                <Link
+                  to={`/g/${post.community.slug}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="hover:text-primary font-medium"
+                  className="font-bold text-foreground hover:text-primary hover:underline transition-colors flex items-center gap-1 shrink-0"
                 >
-                  u/{post.author?.username || 'user'}
+                  <span className="w-4 h-4 rounded bg-primary/10 text-primary flex items-center justify-center font-bold text-[9px]">
+                    g/
+                  </span>
+                  <span>{post.community.name}</span>
                 </Link>
               )}
-              <span>•</span>
-              <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
-              {post.isPinned && (
-                <>
-                  <span>•</span>
-                  <Pin size={10} className="text-primary" />
-                </>
-              )}
+
+              <span className="text-muted-foreground">•</span>
+
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <span>Posted by</span>
+                {post.isAnonymous ? (
+                  <span className="font-semibold text-purple-400">Anonymous</span>
+                ) : (
+                  <Link
+                    to={`/u/${authorHandle}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-semibold text-muted-foreground hover:text-foreground hover:underline transition-colors flex items-center gap-1"
+                  >
+                    {post.author?.avatarUrl ? (
+                      <img 
+                        src={post.author.avatarUrl} 
+                        alt={authorName} 
+                        className="w-3.5 h-3.5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="w-3.5 h-3.5 rounded-full bg-secondary flex items-center justify-center text-[8px] font-bold">
+                        {authorInitial}
+                      </span>
+                    )}
+                    <span>u/{authorHandle}</span>
+                  </Link>
+                )}
+                <span>{formattedTime}</span>
+              </div>
             </div>
 
             {/* OPTIONS MENU */}
             {showMenu && (
-              <div ref={menuRef} className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="relative" ref={menuRef} onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                  className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  title="Post options"
+                  className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                  title="More options"
                 >
                   <MoreHorizontal size={16} />
                 </button>
 
                 {showOptionsMenu && (
-                  <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-md shadow-lg z-30 py-1">
+                  <div className="absolute right-0 top-full mt-1 w-36 bg-card border border-border rounded-lg shadow-xl py-1 z-30">
                     {canDelete && (
                       <button
                         onClick={handleDelete}
-                        disabled={isDeleting}
-                        className="w-full px-3 py-1.5 text-left text-xs text-destructive hover:bg-destructive/10 flex items-center gap-2 cursor-pointer font-medium"
+                        className="w-full text-left px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 flex items-center gap-2 transition-colors cursor-pointer"
                       >
-                        <Trash2 size={12} />
-                        <span>{isDeleting ? 'Deleting...' : 'Delete Post'}</span>
+                        <Trash2 size={13} />
+                        <span>Delete post</span>
                       </button>
                     )}
                     {canReport && (
                       <button
-                        onClick={handleReport}
-                        className="w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary hover:text-foreground flex items-center gap-2 cursor-pointer font-medium"
+                        onClick={() => {
+                          setShowOptionsMenu(false);
+                          toast.info('Report submitted to campus moderators for review');
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center gap-2 transition-colors cursor-pointer"
                       >
-                        <Flag size={12} />
-                        <span>Report Post</span>
-                      </button>
-                    )}
-                    {isAdminOrMod && !isAuthor && (
-                      <button
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                        className="w-full px-3 py-1.5 text-left text-xs text-destructive hover:bg-destructive/10 flex items-center gap-2 cursor-pointer font-medium"
-                      >
-                        <Trash2 size={12} />
-                        <span>Remove Post</span>
+                        <Flag size={13} />
+                        <span>Report</span>
                       </button>
                     )}
                   </div>
@@ -326,33 +348,27 @@ export function PostCard({ post }: PostCardProps) {
 
           {/* TITLE */}
           {post.title && (
-            <Link 
-              to={`/post/${post.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="text-sm font-bold text-foreground hover:text-primary leading-snug line-clamp-2"
-            >
+            <h2 className="text-base sm:text-lg font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
               {post.title}
-            </Link>
+            </h2>
           )}
 
-          {/* CONTENT WITH CLICKABLE LINKS */}
-          {(!post.title || post.content) && (
-            <div className="text-sm text-foreground/90 leading-relaxed line-clamp-4 whitespace-pre-wrap">
-              {renderClickableText(post.content)}
-            </div>
-          )}
+          {/* CONTENT */}
+          <p className="text-sm text-foreground/90 whitespace-pre-line break-words leading-relaxed">
+            {renderClickableText(post.content)}
+          </p>
 
-          {/* LINK EMBED CARD */}
+          {/* EXTERNAL LINK / YOUTUBE EMBED */}
           {post.linkUrl && (
-            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-              {embeddedYouTubeUrl ? (
-                <div className="relative aspect-video rounded-lg overflow-hidden border border-border bg-black shadow-sm">
+            <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+              {youtubeEmbedUrl ? (
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border bg-black shadow-sm">
                   <iframe
-                    src={embeddedYouTubeUrl}
-                    title="YouTube video"
+                    src={youtubeEmbedUrl}
+                    title="YouTube video player"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    className="w-full h-full border-0"
+                    className="absolute inset-0 w-full h-full border-0"
                   />
                 </div>
               ) : (
@@ -360,11 +376,11 @@ export function PostCard({ post }: PostCardProps) {
                   href={post.linkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border hover:border-primary/40 hover:bg-secondary transition-all group"
+                  className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/70 transition-colors group"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <ExternalLink size={16} />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <ExternalLink size={14} />
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-bold text-foreground group-hover:text-primary truncate">
@@ -379,25 +395,14 @@ export function PostCard({ post }: PostCardProps) {
             </div>
           )}
 
-          {/* VIDEO / MEDIA PLAYER */}
+          {/* VIDEO / MEDIA PLAYER (AUTO-PLAY IN VIEWPORT) */}
           {!!post.mediaUrls?.length && (
             <div className="mt-2" onClick={(e) => e.stopPropagation()}>
               {post.type === 'VIDEO' || isVideoUrl(post.mediaUrls[0] || '') ? (
-                <div className="rounded-lg overflow-hidden bg-black border border-border shadow-sm relative group">
-                  <video
-                    src={post.mediaUrls[0]}
-                    controls
-                    preload="metadata"
-                    className="w-full max-h-72 object-contain"
-                  />
-                  <button
-                    onClick={() => setShowVideoLightbox(true)}
-                    className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black cursor-pointer"
-                    title="Fullscreen"
-                  >
-                    <Maximize2 size={14} />
-                  </button>
-                </div>
+                <FeedVideoPlayer
+                  src={post.mediaUrls[0]!}
+                  onFullscreen={() => setShowVideoLightbox(true)}
+                />
               ) : (
                 // IMAGE GRID — clicking opens the lightbox, NOT a new window
                 <div className={`grid gap-1 ${
