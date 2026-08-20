@@ -87,8 +87,8 @@ export const communityService = {
     const cacheKey = !userId && !category && !search && !cursor ? `communities:all:${limit}` : null;
 
     if (cacheKey) {
-      const cached = await getCache<Record<string, unknown>>(cacheKey);
-      if (cached) return cached;
+      const cached = await getCache<{ items: any[]; nextCursor?: string; hasMore: boolean }>(cacheKey);
+      if (cached && cached.items?.length > 0) return cached;
     }
 
     const where: Record<string, unknown> = {};
@@ -108,7 +108,7 @@ export const communityService = {
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         _count: { select: { members: true, posts: true } },
-        members: userId ? { where: { userId }, select: { id: true, role: true } } : false,
+        members: userId ? { where: { userId }, select: { id: true, role: true } } : undefined,
       },
     });
 
@@ -121,7 +121,7 @@ export const communityService = {
       nextCursor: hasMore ? items[items.length - 1]?.id : undefined,
     };
 
-    if (cacheKey) await setCache(cacheKey, result, 300);
+    if (cacheKey && result.items.length > 0) await setCache(cacheKey, result, 300);
     return result;
   },
 
@@ -141,14 +141,13 @@ export const communityService = {
         // Fetch only the current user's membership record (empty array = not a member)
         members: userId
           ? { where: { userId }, select: { id: true, role: true } }
-          : false,
+          : undefined,
       },
     });
 
     if (!community) throw new AppError(404, 'Community not found');
 
     const result = formatCommunity(community as unknown as Record<string, unknown>, userId);
-
     if (cacheKey) await setCache(cacheKey, result, 300);
     return result;
   },

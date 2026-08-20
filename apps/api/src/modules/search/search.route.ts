@@ -45,13 +45,13 @@ searchRoutes.get('/', optionalAuth(), validate(searchQuerySchema, 'query'), asyn
               options: {
                 include: {
                   _count: { select: { votes: true } },
-                  votes: req.userId ? { where: { userId: req.userId } } : false,
+                  votes: req.userId ? { where: { userId: req.userId } } : undefined,
                 },
                 orderBy: { orderNum: 'asc' },
               },
             },
           },
-          votes: req.userId ? { where: { userId: req.userId } } : false,
+          votes: req.userId ? { where: { userId: req.userId } } : undefined,
         },
       });
 

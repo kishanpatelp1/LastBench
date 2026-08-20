@@ -84,7 +84,7 @@ export const commentService = {
       : sort === 'old' ? [{ createdAt: 'asc' as const }]
       : [{ score: 'desc' as const }, { createdAt: 'desc' as const }];
 
-    const voteInclude = userId ? { where: { userId }, select: { type: true } } as const : false;
+    const voteInclude = userId ? { where: { userId }, select: { type: true } } as const : undefined;
 
     const comments = await prisma.comment.findMany({
       where: { postId, parentId: null, isDeleted: false },

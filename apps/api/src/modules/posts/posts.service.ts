@@ -83,7 +83,7 @@ export const postService = {
 
     if (cacheKey) {
       const cached = await getCache<{ items: any[]; nextCursor?: string; hasMore: boolean }>(cacheKey);
-      if (cached) return cached;
+      if (cached && cached.items?.length > 0) return cached;
     }
 
     // Build where clause
@@ -124,7 +124,7 @@ export const postService = {
         author: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
         community: { select: { id: true, name: true, slug: true, avatarUrl: true } },
         poll: { include: { options: { include: { _count: { select: { votes: true } } } } } },
-        votes: userId ? { where: { userId }, select: { type: true } } : false,
+        votes: userId ? { where: { userId }, select: { type: true } } : undefined,
       },
     });
 
@@ -138,8 +138,8 @@ export const postService = {
       hasMore,
     };
 
-    // M-8: Populate cache for anonymous first-page results (TTL 60s)
-    if (cacheKey) {
+    // M-8: Populate cache for anonymous first-page results (TTL 60s) if non-empty
+    if (cacheKey && result.items.length > 0) {
       await setCache(cacheKey, result, 60);
     }
 
@@ -158,12 +158,12 @@ export const postService = {
               orderBy: { orderNum: 'asc' },
               include: {
                 _count: { select: { votes: true } },
-                votes: userId ? { where: { userId }, select: { id: true } } : false,
+                votes: userId ? { where: { userId }, select: { id: true } } : undefined,
               },
             },
           },
         },
-        votes: userId ? { where: { userId }, select: { type: true } } : false,
+        votes: userId ? { where: { userId }, select: { type: true } } : undefined,
       },
     });
 
