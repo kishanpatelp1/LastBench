@@ -47,11 +47,11 @@ function memoryRateLimit(key: string, windowMs: number, max: number): { allowed:
   return { allowed: record.count <= max, remaining };
 }
 
-export function rateLimiter(windowMs = 60_000, max = 100, keyPrefix = 'rl') {
+export function rateLimiter(windowMs = 60_000, max = 300, keyPrefix = 'rl') {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const ip = req.ip ?? req.headers['x-forwarded-for'] ?? 'unknown';
+    const identifier = req.userId ? `user:${req.userId}` : `ip:${req.ip || 'unknown'}`;
     const path = normalizePath(req); // M-4: normalized path
-    const key = `${keyPrefix}:${ip}:${path}`;
+    const key = `${keyPrefix}:${identifier}:${path}`;
 
     try {
       const current = await redis.incr(key);

@@ -58,6 +58,7 @@ export function PostComposer({ communityId: initialCommunityId, onClose, initial
   const { data: groups } = useQuery({
     queryKey: ['communities'],
     queryFn: () => api.getCommunities({ limit: '50' }).then((res) => res.items),
+    enabled: isOpen || isGroupDropdownOpen || initialOpen,
   });
 
   const [communityIdInitialized, setCommunityIdInitialized] = useState(false);
