@@ -132,7 +132,7 @@ export function PostCard({ post }: PostCardProps) {
     }
 
     try {
-      await api.votePoll(post.poll!.id, optionId);
+      await api.votePoll(post.id, optionId);
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['post', post.id] });
       toast.success('Vote submitted!');
@@ -261,49 +261,49 @@ export function PostCard({ post }: PostCardProps) {
         {/* MAIN POST BODY */}
         <div className="flex-1 min-w-0 flex flex-col gap-1.5">
           {/* HEADER STRIP: Subreddit + User + Time */}
-          <div className="flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center justify-between gap-1.5 text-xs min-w-0">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-muted-foreground min-w-0">
               {post.community && (
+                <>
+                  <Link
+                    to={`/g/${post.community.slug}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-bold text-foreground hover:text-primary hover:underline transition-colors flex items-center gap-1 shrink-0"
+                  >
+                    <span className="w-4 h-4 rounded bg-primary/10 text-primary flex items-center justify-center font-bold text-[9px]">
+                      g/
+                    </span>
+                    <span className="truncate max-w-[120px] sm:max-w-none">{post.community.name}</span>
+                  </Link>
+                  <span className="text-muted-foreground/60 select-none">•</span>
+                </>
+              )}
+
+              {post.isAnonymous ? (
+                <span className="font-semibold text-purple-400 shrink-0">Anonymous</span>
+              ) : (
                 <Link
-                  to={`/g/${post.community.slug}`}
+                  to={`/u/${authorHandle}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="font-bold text-foreground hover:text-primary hover:underline transition-colors flex items-center gap-1 shrink-0"
+                  className="font-semibold text-muted-foreground hover:text-foreground hover:underline transition-colors flex items-center gap-1 shrink-0 max-w-[130px] truncate"
                 >
-                  <span className="w-4 h-4 rounded bg-primary/10 text-primary flex items-center justify-center font-bold text-[9px]">
-                    g/
-                  </span>
-                  <span>{post.community.name}</span>
+                  {post.author?.avatarUrl ? (
+                    <img 
+                      src={post.author.avatarUrl} 
+                      alt={authorName} 
+                      className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <span className="w-3.5 h-3.5 rounded-full bg-secondary flex items-center justify-center text-[8px] font-bold shrink-0">
+                      {authorInitial}
+                    </span>
+                  )}
+                  <span className="truncate">u/{authorHandle}</span>
                 </Link>
               )}
 
-              <span className="text-muted-foreground">•</span>
-
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <span>Posted by</span>
-                {post.isAnonymous ? (
-                  <span className="font-semibold text-purple-400">Anonymous</span>
-                ) : (
-                  <Link
-                    to={`/u/${authorHandle}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="font-semibold text-muted-foreground hover:text-foreground hover:underline transition-colors flex items-center gap-1"
-                  >
-                    {post.author?.avatarUrl ? (
-                      <img 
-                        src={post.author.avatarUrl} 
-                        alt={authorName} 
-                        className="w-3.5 h-3.5 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="w-3.5 h-3.5 rounded-full bg-secondary flex items-center justify-center text-[8px] font-bold">
-                        {authorInitial}
-                      </span>
-                    )}
-                    <span>u/{authorHandle}</span>
-                  </Link>
-                )}
-                <span>{formattedTime}</span>
-              </div>
+              <span className="text-muted-foreground/60 select-none">•</span>
+              <span className="whitespace-nowrap text-muted-foreground/80 shrink-0">{formattedTime}</span>
             </div>
 
             {/* OPTIONS MENU */}

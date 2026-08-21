@@ -216,11 +216,18 @@ export const postService = {
     return result;
   },
 
-  async votePoll(postId: string, userId: string, optionId: string) {
-    const poll = await prisma.poll.findUnique({
-      where: { postId },
+  async votePoll(id: string, userId: string, optionId: string) {
+    let poll = await prisma.poll.findUnique({
+      where: { postId: id },
       include: { options: { select: { id: true } } },
     });
+
+    if (!poll) {
+      poll = await prisma.poll.findUnique({
+        where: { id },
+        include: { options: { select: { id: true } } },
+      });
+    }
 
     if (!poll) throw new AppError(404, 'Poll not found');
     if (poll.expiresAt && poll.expiresAt < new Date()) {
