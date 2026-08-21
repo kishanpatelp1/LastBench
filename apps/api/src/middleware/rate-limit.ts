@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { redis } from '../lib/redis.js';
 import { logger } from '../lib/logger.js';
+import { hashToken } from '../lib/tokens.js';
 
 /**
  * M-4: Normalize the request path before building the rate-limit key.
@@ -49,7 +50,10 @@ function memoryRateLimit(key: string, windowMs: number, max: number): { allowed:
 
 export function rateLimiter(windowMs = 60_000, max = 300, keyPrefix = 'rl') {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const identifier = req.userId ? `user:${req.userId}` : `ip:${req.ip || 'unknown'}`;
+    const rawToken = req.cookies?.session as string | undefined;
+    const identifier = rawToken
+      ? `session:${hashToken(rawToken)}`
+      : `ip:${req.ip || 'unknown'}`;
     const path = normalizePath(req); // M-4: normalized path
     const key = `${keyPrefix}:${identifier}:${path}`;
 
